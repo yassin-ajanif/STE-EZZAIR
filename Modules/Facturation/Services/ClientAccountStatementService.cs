@@ -136,7 +136,7 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
         {
             foreach (var p in f.Paiements)
             {
-                if (p.Montant <= 0) continue;
+                if (p.Montant <= 0 || p.Mode == ModePaiement.Credit) continue;
                 var observation = string.IsNullOrWhiteSpace(p.Reference) ? string.Empty : p.Reference.Trim();
                 entries.Add((
                     p.Date.Date,
@@ -153,7 +153,7 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
         {
             foreach (var p in b.Paiements)
             {
-                if (p.Montant <= 0) continue;
+                if (p.Montant <= 0 || p.Mode == ModePaiement.Credit) continue;
                 var observation = string.IsNullOrWhiteSpace(p.Reference) ? string.Empty : p.Reference.Trim();
                 entries.Add((
                     p.Date.Date,
