@@ -193,6 +193,15 @@ public partial class BLListViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void OpenLinkedFacture(BLListRow? row)
+    {
+        if (row?.Bl.FactureId is not int factureId) return;
+        var vm = _sp.GetRequiredService<FactureEditViewModel>();
+        vm.Load(factureId);
+        _workspace.Open(vm);
+    }
+
+    [RelayCommand]
     private async Task DeleteBlAsync(BLListRow? row, CancellationToken cancellationToken)
     {
         if (row == null) return;

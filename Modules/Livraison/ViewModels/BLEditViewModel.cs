@@ -9,6 +9,7 @@ using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.Facturation.ViewModels;
+using GestionCommerciale.Modules.CommandeClient.ViewModels;
 using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Modules.Livraison.Services;
 using GestionCommerciale.Modules.Stock.Services;
@@ -332,6 +333,8 @@ public partial class BLEditViewModel : BaseViewModel
         Devise = CurrencyHelper.FromSettings(cfg);
 
         InvoicedLabel = string.Empty;
+        _linkedFactureId = null;
+        _linkedBccId = null;
 
         if (id == null)
         {
@@ -348,6 +351,8 @@ public partial class BLEditViewModel : BaseViewModel
             InvoicedLabel = _locale.Tf("BL_FacturedOn", factNum);
 
         var b = await db.BonsLivraison.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        _linkedFactureId = b.FactureId;
+        _linkedBccId = b.BonCommandeClientId;
         DevisId = b.DevisId;
         var (storedBccRef, userNote) = BonCommandeReferenceStorage.Parse(b.Note);
         BonCommandeReference = storedBccRef;
@@ -705,6 +710,41 @@ public partial class BLEditViewModel : BaseViewModel
             ? numero
             : $"{BonCommandeReference}, {numero}";
         UpdateBccLabel();
+    }
+
+    private int? _linkedFactureId;
+    private int? _linkedBccId;
+
+    [RelayCommand]
+    private void OpenLinkedFacture()
+    {
+        if (_linkedFactureId is not int factureId) return;
+        var vm = _sp.GetRequiredService<FactureEditViewModel>();
+        vm.Load(factureId);
+        _workspace.Open(vm);
+    }
+
+    [RelayCommand]
+    private async Task OpenLinkedBccAsync(CancellationToken cancellationToken)
+    {
+        var bccId = _linkedBccId;
+        if (bccId == null && !string.IsNullOrWhiteSpace(BonCommandeReference))
+        {
+            var numero = ParseBonCommandeNumeros(BonCommandeReference).FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(numero))
+            {
+                await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+                bccId = await db.BonsCommandeClient.AsNoTracking()
+                    .Where(b => b.Numero == numero)
+                    .Select(b => (int?)b.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+        }
+
+        if (bccId is not int id) return;
+        var vm = _sp.GetRequiredService<BCVEditViewModel>();
+        vm.Load(id);
+        _workspace.Open(vm);
     }
 
     [RelayCommand]
