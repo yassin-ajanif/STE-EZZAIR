@@ -53,13 +53,21 @@
     <Setter Property="Foreground" Value="{DynamicResource CourseraSubtleTextBrush}"/>
   </Style>
 
-  <Style Selector="TextBox, ComboBox, NumericUpDown">
+  <Style Selector="TextBox, ComboBox, NumericUpDown, AutoCompleteBox">
     <Setter Property="Background" Value="{DynamicResource CourseraSurfaceBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource CourseraBorderBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="CornerRadius" Value="8"/>
     <Setter Property="Padding" Value="10,7"/>
     <Setter Property="MinHeight" Value="36"/>
+  </Style>
+
+  <!-- Inner editor uses Fluent defaults (dark border) unless restyled -->
+  <Style Selector="AutoCompleteBox /template/ TextBox#PART_TextBox">
+    <Setter Property="Background" Value="{DynamicResource CourseraSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource CourseraBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
   </Style>
 
   <Style Selector="NumericUpDown">
@@ -396,14 +404,28 @@
     <Setter Property="CornerRadius" Value="10"/>
   </Style>
 
-  <!-- DatePicker: avoid huge default stretch (especially the month segment) -->
+  <!-- DatePicker: match other inputs (gray border) and avoid huge default stretch -->
   <Style Selector="DatePicker">
     <Setter Property="HorizontalAlignment" Value="Left"/>
     <Setter Property="MaxWidth" Value="318"/>
+    <Setter Property="Background" Value="{DynamicResource CourseraSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource CourseraBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Foreground" Value="{DynamicResource CourseraTextBrush}"/>
+    <Setter Property="MinHeight" Value="36"/>
+  </Style>
+  <Style Selector="DatePicker /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource CourseraSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource CourseraBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
   </Style>
   <Style Selector="DatePicker ComboBox">
     <Setter Property="MinWidth" Value="44"/>
     <Setter Property="MaxWidth" Value="100"/>
+    <Setter Property="Background" Value="{DynamicResource CourseraSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource CourseraBorderBrush}"/>
   </Style>
 
   <!-- Reporting / dashboard cards -->
