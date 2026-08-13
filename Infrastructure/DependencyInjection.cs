@@ -12,6 +12,8 @@ using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
 using GestionCommerciale.Modules.Pos.Services;
 using GestionCommerciale.Modules.Pos.ViewModels;
+using GestionCommerciale.Modules.Preparation.Services;
+using GestionCommerciale.Modules.Preparation.ViewModels;
 using GestionCommerciale.Modules.Reception.Services;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Reporting.Services;
@@ -56,6 +58,7 @@ public static class DependencyInjection
         services.AddSingleton<IClientAccountStatementService, ClientAccountStatementService>();
         services.AddSingleton<ISupplierAccountStatementService, SupplierAccountStatementService>();
         services.AddSingleton<IFactureWorkflowService, FactureWorkflowService>();
+        services.AddSingleton<IBonPreparationWorkflowService, BonPreparationWorkflowService>();
         services.AddSingleton<IAvoirWorkflowService, AvoirWorkflowService>();
         services.AddSingleton<IReportService, ReportService>();
         services.AddSingleton<ILicenseService, LicenseService>();
@@ -88,6 +91,8 @@ public static class DependencyInjection
         services.AddTransient<BCEditViewModel>();
         services.AddTransient<FactureListViewModel>();
         services.AddTransient<FactureEditViewModel>();
+        services.AddTransient<BonPreparationListViewModel>();
+        services.AddTransient<BonPreparationEditViewModel>();
         services.AddTransient<FactureFournisseurListViewModel>();
         services.AddTransient<FactureFournisseurEditViewModel>();
         services.AddTransient<AvoirListViewModel>();

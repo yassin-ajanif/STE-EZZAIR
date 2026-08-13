@@ -6,7 +6,6 @@ namespace GestionCommerciale.Modules.Preparation.ViewModels;
 
 public partial class BonPreparationLineRow : ObservableObject
 {
-    [ObservableProperty] private int? _bonLivraisonId;
     [ObservableProperty] private int _produitId;
     [ObservableProperty] private string _reference = string.Empty;
     [ObservableProperty] private string _designation = string.Empty;

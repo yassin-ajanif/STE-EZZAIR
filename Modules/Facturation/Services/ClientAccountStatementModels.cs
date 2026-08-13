@@ -3,8 +3,9 @@ namespace GestionCommerciale.Modules.Facturation.Services;
 public enum ClientAccountEntryKind
 {
     Facture = 0,
-    Avoir = 1,
-    Paiement = 2
+    BonPreparation = 1,
+    Avoir = 2,
+    Paiement = 3
 }
 
 public sealed class ClientAccountStatementRow

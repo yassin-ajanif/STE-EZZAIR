@@ -21,8 +21,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Preparation.ViewModels;
 
-public sealed record LinkedBlRow(int Id, string Numero, DateTime Date);
-
 public partial class BonPreparationEditViewModel : BaseViewModel
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
@@ -37,16 +35,13 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
     private readonly IPdfPrintService _pdfPrint;
-    private readonly IBonPreparationBlLinkService _blLinkService;
-    private readonly IBonPreparationBccLinkService _bccLinkService;
+    private readonly IStockMovementService _stock;
 
     public BonPreparationEditViewModel(
         IDbContextFactory<AppDbContext> dbFactory,
         IDocumentNumberService numbers,
         IAppSettingsService settings,
         IBonPreparationWorkflowService factureWorkflow,
-        IBonPreparationBlLinkService blLinkService,
-        IBonPreparationBccLinkService bccLinkService,
         IDialogService dialog,
         WorkspaceNavigator workspaceNavigator,
         IServiceProvider sp,
@@ -54,7 +49,8 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IPdfService pdf,
-        IPdfPrintService pdfPrint)
+        IPdfPrintService pdfPrint,
+        IStockMovementService stock)
     {
         _dbFactory = dbFactory;
         _numbers = numbers;
@@ -68,8 +64,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         _uiPreferences = uiPreferences;
         _pdf = pdf;
         _pdfPrint = pdfPrint;
-        _blLinkService = blLinkService;
-        _bccLinkService = bccLinkService;
+        _stock = stock;
         _locale.CultureApplied += (_, _) =>
         {
             RefreshBonPreparationUi();
@@ -85,10 +80,8 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BonPreparationLineRow> Lignes { get; } = [];
     public ObservableCollection<BonPreparationPaiementRowViewModel> Paiements { get; } = [];
-    public ObservableCollection<LinkedBlRow> LinkedBls { get; } = [];
 
-    [ObservableProperty] private int? _factureId;
-    [ObservableProperty] private int? _devisId;
+    [ObservableProperty] private int? _bonPreparationId;
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
@@ -97,7 +90,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     [ObservableProperty] private bool _estPayee;
     [ObservableProperty] private decimal _remiseGlobale;
     [ObservableProperty] private string _note = string.Empty;
-    [ObservableProperty] private string _bonCommandeReference = string.Empty;
     [ObservableProperty] private decimal _totalHt;
     [ObservableProperty] private decimal _totalTva;
     [ObservableProperty] private decimal _totalTtc;
@@ -116,7 +108,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     [ObservableProperty] private string _btnPrint = string.Empty;
     [ObservableProperty] private string _btnBack = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
-    [ObservableProperty] private string _menuDeleteFacture = string.Empty;
+    [ObservableProperty] private string _menuDeleteBonPreparation = string.Empty;
     [ObservableProperty] private string _lblFactPayee = string.Empty;
     [ObservableProperty] private string _lblPaid = string.Empty;
     [ObservableProperty] private string _lblUnpaid = string.Empty;
@@ -154,11 +146,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColTva = string.Empty;
     [ObservableProperty] private string _lblDocColMontantHt = string.Empty;
     [ObservableProperty] private string _lblDocColMontantTtc = string.Empty;
-    [ObservableProperty] private string _lblLinkedBls = string.Empty;
-    [ObservableProperty] private string _btnAddBl = string.Empty;
-    [ObservableProperty] private string _lblLinkedBccs = string.Empty;
-    [ObservableProperty] private string _btnAddBcc = string.Empty;
-    [ObservableProperty] private string _wmBonCommandeReference = string.Empty;
 
     public DocumentLineGridColumnState LineGridColumns { get; } = new();
     public bool ShowTotalTva => LineGridColumns.ShowTva && LineGridColumns.ShowMontantTtc;
@@ -179,7 +166,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             OnPropertyChanged(nameof(HighlightHtTotal));
             RefreshTotals();
         }
-        _uiPreferences.SaveDocumentLineColumns("facture", LineGridColumns);
+        _uiPreferences.SaveDocumentLineColumns("bon_preparation", LineGridColumns);
     }
 
     private void RefreshBonPreparationUi()
@@ -221,11 +208,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         LblDocColTva = _locale.T("DocLine_ColTva");
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");
         LblDocColMontantTtc = _locale.T("DocLine_ColMontantTtc");
-        LblLinkedBls = _locale.T("Bp_LinkedBls");
-        BtnAddBl = _locale.T("Bp_AddBl");
-        LblLinkedBccs = _locale.T("Bp_LinkedBccs");
-        BtnAddBcc = _locale.T("Bp_AddBcc");
-        WmBonCommandeReference = _locale.T("Bp_WmBonCommandeReference");
     }
 
     private void UpdateBonPreparationTotalLines()
@@ -264,13 +246,9 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            if (await db.Avoirs.AsNoTracking().AnyAsync(a => a.BonPreparationId == id, cancellationToken))
-            {
-                await _dialog.ShowErrorAsync(_locale.T("Bp_Title"), _locale.T("Bp_ErrDeleteReferenced"), cancellationToken);
-                return;
-            }
-
             var entity = await db.BonsPreparation.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == id, cancellationToken);
+            await _stock.ResyncBonPreparationStockAsync(
+                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(), _session.UserId, cancellationToken);
             db.BonsPreparation.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -475,9 +453,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         BonPreparationId = id;
         var cfg = await _settings.GetAsync(cancellationToken);
         Devise = CurrencyHelper.FromSettings(cfg);
-        DevisId = null;
-        LinkedBls.Clear();
-        BonCommandeReference = string.Empty;
         Lignes.Clear();
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         await LoadLookupsAsync(db, cancellationToken);
@@ -498,24 +473,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         }
 
         var f = await db.BonsPreparation.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
-        var linkedBls = await db.BonsLivraison.AsNoTracking()
-            .Where(b => b.BonPreparationId == id)
-            .OrderBy(b => b.Date).ThenBy(b => b.Numero)
-            .ToListAsync(cancellationToken);
-        foreach (var bl in linkedBls)
-            LinkedBls.Add(new LinkedBlRow(bl.Id, bl.Numero, bl.Date));
-        BonCommandeReference = f.BonCommandeReference;
-        if (string.IsNullOrWhiteSpace(BonCommandeReference))
-        {
-            var linkedBccNums = await db.BonsCommandeClient.AsNoTracking()
-                .Where(b => b.BonPreparationId == id)
-                .OrderBy(b => b.Date).ThenBy(b => b.Numero)
-                .Select(b => b.Numero)
-                .ToListAsync(cancellationToken);
-            if (linkedBccNums.Count > 0)
-                BonCommandeReference = string.Join(", ", linkedBccNums);
-        }
-        DevisId = f.DevisId;
         Numero = f.Numero;
         ClientId = f.ClientId;
         Date = new DateTimeOffset(f.Date);
@@ -566,199 +523,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     }
 
     public void Load(int? id) => _ = LoadAsync(id, CancellationToken.None);
-
-    public void LoadFromBL(int blId) => _ = LoadFromBlsAsync([blId], CancellationToken.None);
-
-    [RelayCommand]
-    private async Task ShowBccPickerAsync(CancellationToken cancellationToken)
-    {
-        if (ClientId == 0) return;
-        var existingNumeros = ParseBonCommandeNumeros(BonCommandeReference);
-        var available = await _bccLinkService.GetAvailableBccsForClientAsync(ClientId, BonPreparationId, cancellationToken);
-        var filtered = available.Where(b => !existingNumeros.Contains(b.Numero, StringComparer.OrdinalIgnoreCase)).ToList();
-        if (filtered.Count == 0)
-        {
-            await _dialog.ShowInfoAsync(_locale.T("Bp_Title"), _locale.T("Bp_NoAvailableBccs"), cancellationToken);
-            return;
-        }
-
-        var pickerItems = filtered.Select(b =>
-        {
-            var (_, _, ttc) = DocumentTotalsHelper.BonCommandeClientTotals(b.Lignes ?? []);
-            var montantLabel = _locale.Tf("Doc_FmtTtc", ttc, Devise).TrimEnd();
-            return (b.Id, b.Numero, b.Date, montantLabel);
-        }).ToList();
-        var selectedIds = await _dialog.ShowBlPickerAsync(_locale.T("Bp_AddBcc"), pickerItems, cancellationToken);
-        if (selectedIds == null || selectedIds.Count == 0) return;
-
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var selectedNumeros = await db.BonsCommandeClient.AsNoTracking()
-            .Where(b => selectedIds.Contains(b.Id))
-            .OrderBy(b => b.Date).ThenBy(b => b.Numero)
-            .Select(b => b.Numero)
-            .ToListAsync(cancellationToken);
-
-        foreach (var numero in selectedNumeros)
-            AppendBonCommandeNumero(numero);
-    }
-
-    private static HashSet<string> ParseBonCommandeNumeros(string reference) =>
-        reference.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    private void AppendBonCommandeNumero(string numero)
-    {
-        if (string.IsNullOrWhiteSpace(numero)) return;
-        var existing = ParseBonCommandeNumeros(BonCommandeReference);
-        if (existing.Contains(numero)) return;
-        BonCommandeReference = string.IsNullOrWhiteSpace(BonCommandeReference)
-            ? numero
-            : $"{BonCommandeReference}, {numero}";
-    }
-
-    [RelayCommand]
-    private void RemoveBlGroup(LinkedBlRow bl)
-    {
-        for (var i = Lignes.Count - 1; i >= 0; i--)
-        {
-            if (Lignes[i].BonLivraisonId == bl.Id)
-            {
-                Lignes[i].PropertyChanged -= LineChanged;
-                Lignes.RemoveAt(i);
-            }
-        }
-        LinkedBls.Remove(bl);
-        RefreshTotals();
-    }
-
-    [RelayCommand]
-    private async Task ShowBlPickerAsync(CancellationToken cancellationToken)
-    {
-        if (ClientId == 0) return;
-        var excludeIds = LinkedBls.Select(b => b.Id).Concat(Lignes.Where(l => l.BonLivraisonId.HasValue).Select(l => l.BonLivraisonId!.Value)).Distinct().ToList();
-        var available = await _blLinkService.GetAvailableBlsForClientAsync(ClientId, BonPreparationId, cancellationToken);
-        var filtered = available.Where(b => !excludeIds.Contains(b.Id)).ToList();
-        if (filtered.Count == 0)
-        {
-            await _dialog.ShowInfoAsync(_locale.T("Bp_Title"), _locale.T("Bp_NoAvailableBls"), cancellationToken);
-            return;
-        }
-
-        var pickerItems = filtered.Select(b =>
-        {
-            var (_, _, ttc) = DocumentTotalsHelper.BonLivraisonTotals(b.Lignes ?? []);
-            var montantLabel = _locale.Tf("Doc_FmtTtc", ttc, Devise).TrimEnd();
-            return (b.Id, b.Numero, b.Date, montantLabel);
-        }).ToList();
-        var selectedIds = await _dialog.ShowBlPickerAsync(_locale.T("Bp_AddBl"), pickerItems, cancellationToken);
-        if (selectedIds == null || selectedIds.Count == 0) return;
-
-        foreach (var blId in selectedIds)
-            await AddBlLinesAsync(blId, cancellationToken);
-    }
-
-    [RelayCommand]
-    private async Task AddBlLinesAsync(int blId, CancellationToken cancellationToken)
-    {
-        var lines = await _blLinkService.LoadBlLinesAsync(blId, cancellationToken);
-        foreach (var l in lines)
-        {
-            var prod = Produits.FirstOrDefault(p => p.Id == l.ProduitId);
-            l.Reference = prod?.Reference ?? string.Empty;
-            l.PropertyChanged += LineChanged;
-            Lignes.Add(l);
-        }
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var b = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == blId, cancellationToken);
-        LinkedBls.Add(new LinkedBlRow(b.Id, b.Numero, b.Date));
-        RefreshTotals();
-    }
-
-    public async Task LoadFromBlsAsync(IReadOnlyList<int> blIds, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        Devise = CurrencyHelper.FromSettings(cfg);
-        LinkedBls.Clear();
-        BonCommandeReference = string.Empty;
-        Lignes.Clear();
-        DevisId = null;
-        BonPreparationId = null;
-        Date = new DateTimeOffset(DateTime.Today);
-        DateEcheance = Date.AddDays(30);
-        EstPayee = false;
-        Numero = _locale.T("Bp_NewNumPlaceholder");
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        await LoadLookupsAsync(db, cancellationToken);
-
-        var firstBlId = blIds[0];
-        var firstBl = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == firstBlId, cancellationToken);
-        ClientId = firstBl.ClientId;
-
-        foreach (var blId in blIds)
-        {
-            var bl = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == blId, cancellationToken);
-            LinkedBls.Add(new LinkedBlRow(bl.Id, bl.Numero, bl.Date));
-            var lines = await _blLinkService.LoadBlLinesAsync(blId, cancellationToken);
-            foreach (var l in lines)
-            {
-                var prod = Produits.FirstOrDefault(p => p.Id == l.ProduitId);
-                l.Reference = prod?.Reference ?? string.Empty;
-                l.PropertyChanged += LineChanged;
-                Lignes.Add(l);
-            }
-        }
-
-        HookLines();
-        CanEditDraft = true;
-        MontantPaye = 0;
-        Paiements.Clear();
-        Title = blIds.Count > 1 ? _locale.T("Bp_FromMultiBl") : _locale.T("Bp_FromBl");
-        RefreshTotals();
-    }
-
-    public async Task LoadFromDevisAsync(int devisId, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        Devise = CurrencyHelper.FromSettings(cfg);
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var d = await db.Devis.Include(x => x.Lignes).FirstAsync(x => x.Id == devisId, cancellationToken);
-        DevisId = d.Id;
-        LinkedBls.Clear();
-        BonCommandeReference = string.Empty;
-        BonPreparationId = null;
-        ClientId = d.ClientId;
-        Date = new DateTimeOffset(DateTime.Today);
-        DateEcheance = Date.AddDays(30);
-        EstPayee = false;
-        Numero = _locale.T("Bp_NewNumPlaceholder");
-        RemiseGlobale = d.RemiseGlobale;
-        await LoadLookupsAsync(db, cancellationToken);
-        Lignes.Clear();
-        foreach (var l in d.Lignes)
-        {
-            var prod = Produits.FirstOrDefault(p => p.Id == l.ProduitId);
-            Lignes.Add(new BonPreparationLineRow
-            {
-                ProduitId = l.ProduitId,
-                Reference = prod?.Reference ?? string.Empty,
-                Designation = l.Designation,
-                Conditionnement = l.Conditionnement,
-                Quantite = l.Quantite,
-                PrixUnitaireHt = l.PrixUnitaireHT,
-                Remise = l.Remise,
-                TauxTva = l.TauxTVA
-            });
-        }
-
-        HookLines();
-        CanEditDraft = true;
-        MontantPaye = 0;
-        Paiements.Clear();
-        Title = _locale.T("Bp_FromDevis");
-        RefreshTotals();
-    }
-
-    public void LoadFromDevis(int devisId) => _ = LoadFromDevisAsync(devisId, CancellationToken.None);
 
     [RelayCommand]
     private void AddLine()
@@ -815,7 +579,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         if (BonPreparationId != null)
         {
             await using var checkDb = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var paid = await checkDb.Paiements.AsNoTracking()
+            var paid = await checkDb.PaiementsBonPreparation.AsNoTracking()
                 .Where(p => p.BonPreparationId == BonPreparationId)
                 .SumAsync(p => p.Montant, cancellationToken);
             if (!await ValidatePaymentsAgainstTtcAsync(ComputeFullPaymentTtc(), paid, cancellationToken))
@@ -834,13 +598,11 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
-                    DevisId = DevisId,
                     Date = Date.DateTime,
                     DateEcheance = DateEcheance.DateTime,
                     EstPayee = EstPayee,
                     RemiseGlobale = RemiseGlobale,
                     Note = Note,
-                    BonCommandeReference = BonCommandeReference.Trim(),
                     CreatedByUserId = _session.UserId
                 };
                 foreach (var l in Lignes)
@@ -853,8 +615,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                         Quantite = l.Quantite,
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
-                        TauxTVA = l.TauxTva,
-                        BonLivraisonId = l.BonLivraisonId
+                        TauxTVA = l.TauxTva
                     });
                 }
 
@@ -862,30 +623,17 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                 db.BonsPreparation.Add(entity);
                 await db.SaveChangesAsync(cancellationToken);
                 BonPreparationId = entity.Id;
-
-                foreach (var bl in LinkedBls)
-                {
-                    var blEntity = await db.BonsLivraison.FindAsync(bl.Id);
-                    if (blEntity != null)
-                        blEntity.BonPreparationId = entity.Id;
-                }
-
-                await _bccLinkService.AssignBccsToFactureAsync(db, entity.Id, [], cancellationToken);
-
-                await db.SaveChangesAsync(cancellationToken);
             }
             else
             {
                 entity = await db.BonsPreparation.Include(f => f.Lignes).FirstAsync(f => f.Id == BonPreparationId, cancellationToken);
 
                 entity.ClientId = ClientId;
-                entity.DevisId = DevisId;
                 entity.Date = Date.DateTime;
                 entity.DateEcheance = DateEcheance.DateTime;
                 entity.EstPayee = EstPayee;
                 entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = Note;
-                entity.BonCommandeReference = BonCommandeReference.Trim();
                 db.BonPreparationLignes.RemoveRange(entity.Lignes);
                 foreach (var l in Lignes)
                 {
@@ -897,8 +645,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                         Quantite = l.Quantite,
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
-                        TauxTVA = l.TauxTva,
-                        BonLivraisonId = l.BonLivraisonId
+                        TauxTVA = l.TauxTva
                     });
                 }
 
@@ -906,24 +653,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                 await db.SaveChangesAsync(cancellationToken);
             }
 
-            var linkedBlIds = LinkedBls.Select(b => b.Id).ToHashSet();
-            var existingBls = await db.BonsLivraison.Where(b => b.BonPreparationId == BonPreparationId).ToListAsync(cancellationToken);
-            foreach (var bl in existingBls)
-            {
-                if (!linkedBlIds.Contains(bl.Id))
-                    bl.BonPreparationId = null;
-            }
-
-            foreach (var bl in LinkedBls)
-            {
-                var blEntity = await db.BonsLivraison.FindAsync(bl.Id);
-                if (blEntity != null)
-                    blEntity.BonPreparationId = BonPreparationId;
-            }
-
-            await _bccLinkService.AssignBccsToFactureAsync(db, BonPreparationId!.Value, [], cancellationToken);
-
-            await db.SaveChangesAsync(cancellationToken);
+            await ResyncStockAsync(db, entity, cancellationToken);
 
             Numero = entity.Numero;
             await _dialog.ShowInfoAsync(_locale.T("Bp_Title"), _locale.T("Bp_Saved"), cancellationToken);
@@ -997,7 +727,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildFacturePdfBytesAsync(cancellationToken);
+            var bytes = await BuildBonPreparationPdfBytesAsync(cancellationToken);
             if (bytes == null) return;
             var ok = await _dialog.SavePickedFileBytesAsync(_locale.T("Export_PdfPicker"), $"{Numero}.pdf", new[] { "*.pdf" }, bytes, cancellationToken);
             if (ok)
@@ -1020,7 +750,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildFacturePdfBytesAsync(cancellationToken);
+            var bytes = await BuildBonPreparationPdfBytesAsync(cancellationToken);
             if (bytes == null) return;
             await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
         }
@@ -1034,13 +764,21 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         }
     }
 
-    private async Task<byte[]?> BuildFacturePdfBytesAsync(CancellationToken cancellationToken)
+    private async Task<byte[]?> BuildBonPreparationPdfBytesAsync(CancellationToken cancellationToken)
     {
         if (BonPreparationId is not { } id) return null;
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         var f = await db.BonsPreparation.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
-        f.BonCommandeReference = BonCommandeReference.Trim();
         var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == f.ClientId, cancellationToken);
         return await _pdf.BuildBonPreparationPdfAsync(f, DocumentPartyPdfInfo.FromTiers(client), cancellationToken);
+    }
+
+    private Task ResyncStockAsync(AppDbContext db, BonPreparation entity, CancellationToken cancellationToken)
+    {
+        var lines = entity.Lignes
+            .Where(l => l.ProduitId > 0)
+            .Select(l => (l.ProduitId, l.Quantite));
+        return _stock.ResyncBonPreparationStockAsync(
+            db, entity.Id, entity.Numero, lines, _session.UserId, cancellationToken);
     }
 }

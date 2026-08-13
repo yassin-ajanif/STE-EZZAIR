@@ -6,6 +6,7 @@ using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.Livraison.Models;
+using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Models.Pdf;
@@ -21,6 +22,7 @@ public interface IPdfService
     Task<byte[]> BuildBonCommandePdfAsync(BonCommande bc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
     Task<byte[]> BuildBonCommandeClientPdfAsync(BonCommandeClient bc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
     Task<byte[]> BuildFacturePdfAsync(Facture facture, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
+    Task<byte[]> BuildBonPreparationPdfAsync(BonPreparation doc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
     Task<byte[]> BuildFactureFournisseurPdfAsync(FactureFournisseur factureFournisseur, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
     Task<byte[]> BuildAvoirPdfAsync(Avoir avoir, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default);
     Task<byte[]> BuildClientAccountStatementPdfAsync(

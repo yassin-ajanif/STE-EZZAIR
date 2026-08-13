@@ -9,6 +9,7 @@ using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
 using GestionCommerciale.Modules.Pos.ViewModels;
+using GestionCommerciale.Modules.Preparation.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Reporting.ViewModels;
 using GestionCommerciale.Modules.Stock.ViewModels;
@@ -64,6 +65,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private string _navDevis = string.Empty;
     [ObservableProperty] private string _navBcc = string.Empty;
     [ObservableProperty] private string _navBl = string.Empty;
+    [ObservableProperty] private string _navBonPreparation = string.Empty;
     [ObservableProperty] private string _navFactures = string.Empty;
     [ObservableProperty] private string _navAvoirs = string.Empty;
     [ObservableProperty] private string _navAvoirFournisseur = string.Empty;
@@ -87,6 +89,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private bool _isNavDevisActive;
     [ObservableProperty] private bool _isNavBccActive;
     [ObservableProperty] private bool _isNavBlActive;
+    [ObservableProperty] private bool _isNavBonPreparationActive;
     [ObservableProperty] private bool _isNavFacturesActive;
     [ObservableProperty] private bool _isNavAvoirsActive;
     [ObservableProperty] private bool _isNavAvoirFournisseurActive;
@@ -108,6 +111,7 @@ public partial class AppShellViewModel : BaseViewModel
         NavDevis = _locale.T("Nav_Devis");
         NavBcc = _locale.T("Nav_BCC");
         NavBl = _locale.T("Nav_BL");
+        NavBonPreparation = _locale.T("Nav_BonPreparation");
         NavFactures = _locale.T("Nav_Factures");
         NavAvoirs = _locale.T("Nav_Avoirs");
         NavAvoirFournisseur = _locale.T("Nav_AvoirFournisseur");
@@ -151,6 +155,7 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavDevis => _session.CanAccessDevis;
     public bool ShowNavBCC => _session.CanAccessDevis;
     public bool ShowNavBL => _session.CanAccessBL;
+    public bool ShowNavBonPreparation => _session.CanAccessPreparation;
     public bool ShowNavBR => _session.CanAccessBR;
     public bool ShowNavBC => _session.CanAccessBC;
     public bool ShowNavFactures => _session.CanAccessFacturation;
@@ -211,6 +216,9 @@ public partial class AppShellViewModel : BaseViewModel
     private void GoBL() => _workspace.Open(_sp.GetRequiredService<BLListViewModel>());
 
     [RelayCommand]
+    private void GoBonPreparation() => _workspace.Open(_sp.GetRequiredService<BonPreparationListViewModel>());
+
+    [RelayCommand]
     private void GoBR() => _workspace.Open(_sp.GetRequiredService<BRListViewModel>());
 
     [RelayCommand]
@@ -266,6 +274,7 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavDevisActive = p is DevisListViewModel or DevisEditViewModel;
         IsNavBccActive = p is BCVListViewModel or BCVEditViewModel;
         IsNavBlActive = p is BLListViewModel or BLEditViewModel;
+        IsNavBonPreparationActive = p is BonPreparationListViewModel or BonPreparationEditViewModel;
         IsNavFacturesActive = p is FactureListViewModel or FactureEditViewModel;
         IsNavAvoirsActive = p is AvoirListViewModel or AvoirEditViewModel;
         IsNavAvoirFournisseurActive = p is AvoirFournisseurListViewModel or AvoirFournisseurEditViewModel;

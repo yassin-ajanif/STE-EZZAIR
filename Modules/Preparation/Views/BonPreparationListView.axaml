@@ -53,12 +53,12 @@
               <Border.ContextMenu>
                 <ContextMenu Opening="OnRowContextMenuOpening">
                   <MenuItem Header="{Binding #BonPreparationListRoot.((vm:BonPreparationListViewModel)DataContext).MenuDeleteBonPreparation}"
-                            Command="{Binding #BonPreparationListRoot.((vm:BonPreparationListViewModel)DataContext).DeleteFactureCommand}"
+                            Command="{Binding #BonPreparationListRoot.((vm:BonPreparationListViewModel)DataContext).DeleteBonPreparationCommand}"
                             CommandParameter="{Binding}"/>
                 </ContextMenu>
               </Border.ContextMenu>
               <Grid ColumnDefinitions="*,*,100,100,118,100,*">
-                <TextBlock Grid.Column="0" Text="{Binding Facture.Numero}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+                <TextBlock Grid.Column="0" Text="{Binding BonPreparation.Numero}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="1" Text="{Binding ClientNom}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="2" Text="{Binding DateShort}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="3" Classes="overdue-highlight" Text="{Binding EcheanceShort}" VerticalAlignment="Center" Margin="0,0,12,0"/>

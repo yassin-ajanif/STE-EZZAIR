@@ -1,4 +1,3 @@
-using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Shared.Models;
 
 namespace GestionCommerciale.Modules.Preparation.Models;
@@ -7,8 +6,6 @@ public class BonPreparationLigne : BaseEntity
 {
     public int BonPreparationId { get; set; }
     public BonPreparation? BonPreparation { get; set; }
-    public int? BonLivraisonId { get; set; }
-    public BonLivraison? BonLivraison { get; set; }
     public int ProduitId { get; set; }
     public string Designation { get; set; } = string.Empty;
     public decimal Quantite { get; set; }

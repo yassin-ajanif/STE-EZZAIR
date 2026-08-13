@@ -3,6 +3,7 @@ using System;
 using GestionCommerciale.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionCommerciale.Shared.Database.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260813151559_AddBonPreparation")]
+    partial class AddBonPreparation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -108,6 +111,9 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BonPreparationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ClientId")
                         .HasColumnType("INTEGER");
 
@@ -138,6 +144,8 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BonPreparationId");
 
                     b.HasIndex("FactureId");
 
@@ -742,6 +750,9 @@ namespace GestionCommerciale.Shared.Database.Migrations
                     b.Property<int?>("BonCommandeClientId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BonPreparationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ClientId")
                         .HasColumnType("INTEGER");
 
@@ -774,6 +785,8 @@ namespace GestionCommerciale.Shared.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BonCommandeClientId");
+
+                    b.HasIndex("BonPreparationId");
 
                     b.HasIndex("FactureId");
 
@@ -833,6 +846,10 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BonCommandeReference")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ClientId")
                         .HasColumnType("INTEGER");
 
@@ -847,6 +864,9 @@ namespace GestionCommerciale.Shared.Database.Migrations
 
                     b.Property<DateTime>("DateEcheance")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("DevisId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("EstPayee")
                         .HasColumnType("INTEGER");
@@ -877,6 +897,9 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BonLivraisonId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("BonPreparationId")
@@ -915,6 +938,8 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BonLivraisonId");
 
                     b.HasIndex("BonPreparationId");
 
@@ -1337,10 +1362,17 @@ namespace GestionCommerciale.Shared.Database.Migrations
 
             modelBuilder.Entity("GestionCommerciale.Modules.CommandeClient.Models.BonCommandeClient", b =>
                 {
+                    b.HasOne("GestionCommerciale.Modules.Preparation.Models.BonPreparation", "BonPreparation")
+                        .WithMany()
+                        .HasForeignKey("BonPreparationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("GestionCommerciale.Modules.Facturation.Models.Facture", "Facture")
                         .WithMany()
                         .HasForeignKey("FactureId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("BonPreparation");
 
                     b.Navigation("Facture");
                 });
@@ -1464,10 +1496,17 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .HasForeignKey("BonCommandeClientId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("GestionCommerciale.Modules.Preparation.Models.BonPreparation", "BonPreparation")
+                        .WithMany()
+                        .HasForeignKey("BonPreparationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("GestionCommerciale.Modules.Facturation.Models.Facture", "Facture")
                         .WithMany()
                         .HasForeignKey("FactureId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("BonPreparation");
 
                     b.Navigation("Facture");
                 });
@@ -1485,11 +1524,18 @@ namespace GestionCommerciale.Shared.Database.Migrations
 
             modelBuilder.Entity("GestionCommerciale.Modules.Preparation.Models.BonPreparationLigne", b =>
                 {
+                    b.HasOne("GestionCommerciale.Modules.Livraison.Models.BonLivraison", "BonLivraison")
+                        .WithMany()
+                        .HasForeignKey("BonLivraisonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("GestionCommerciale.Modules.Preparation.Models.BonPreparation", "BonPreparation")
                         .WithMany("Lignes")
                         .HasForeignKey("BonPreparationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("BonLivraison");
 
                     b.Navigation("BonPreparation");
                 });

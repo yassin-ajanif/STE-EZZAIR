@@ -9,6 +9,7 @@ public static class DocumentNumberKind
         new("DEV", "Nav_Devis"),
         new("BCC", "Nav_BCC"),
         new("BL", "Nav_BL"),
+        new("BP", "Nav_BonPreparation"),
         new("FAC", "Nav_Factures"),
         new("AVO", "Nav_Avoirs"),
         new("BC", "Nav_BC"),

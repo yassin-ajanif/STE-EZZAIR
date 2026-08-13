@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GestionCommerciale.Modules.Preparation.ViewModels;
+using GestionCommerciale.Modules.Stock.Services;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Models.Pdf;
@@ -20,6 +22,7 @@ public partial class BonPreparationListViewModel : BaseViewModel
     private readonly IPdfService _pdf;
     private readonly ILocaleService _locale;
     private readonly IAppSettingsService _settings;
+    private readonly IStockMovementService _stock;
 
     public BonPreparationListViewModel(
         IDbContextFactory<AppDbContext> dbFactory,
@@ -28,7 +31,8 @@ public partial class BonPreparationListViewModel : BaseViewModel
         IDialogService dialog,
         IPdfService pdf,
         ILocaleService locale,
-        IAppSettingsService settings)
+        IAppSettingsService settings,
+        IStockMovementService stock)
     {
         _dbFactory = dbFactory;
         _workspace = workspaceNavigator;
@@ -37,6 +41,7 @@ public partial class BonPreparationListViewModel : BaseViewModel
         _pdf = pdf;
         _locale = locale;
         _settings = settings;
+        _stock = stock;
         _locale.CultureApplied += (_, _) => RefreshListToolbar();
         RefreshListToolbar();
         Title = _locale.T("BpList_Title");
@@ -47,7 +52,7 @@ public partial class BonPreparationListViewModel : BaseViewModel
     [ObservableProperty] private string _btnPdf = string.Empty;
     [ObservableProperty] private string _btnFilterDate = string.Empty;
     [ObservableProperty] private string _wmFilterPayee = string.Empty;
-    [ObservableProperty] private string _menuDeleteFacture = string.Empty;
+    [ObservableProperty] private string _menuDeleteBonPreparation = string.Empty;
     [ObservableProperty] private string _colHeaderRef = string.Empty;
     [ObservableProperty] private string _colHeaderParty = string.Empty;
     [ObservableProperty] private string _colHeaderDate = string.Empty;
@@ -204,13 +209,9 @@ public partial class BonPreparationListViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            if (await db.Avoirs.AsNoTracking().AnyAsync(a => a.BonPreparationId == item.Id, cancellationToken))
-            {
-                await _dialog.ShowErrorAsync(_locale.T("Bp_Title"), _locale.T("Bp_ErrDeleteReferenced"), cancellationToken);
-                return;
-            }
-
             var entity = await db.BonsPreparation.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == item.Id, cancellationToken);
+            await _stock.ResyncBonPreparationStockAsync(
+                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(), null, cancellationToken);
             db.BonsPreparation.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 

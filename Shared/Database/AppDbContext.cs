@@ -5,6 +5,7 @@ using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.CommandeFournisseur.Models;
 using GestionCommerciale.Modules.CommandeClient.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
+using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Modules.Tiers.Models;
@@ -36,6 +37,9 @@ public class AppDbContext : DbContext
     public DbSet<Facture> Factures => Set<Facture>();
     public DbSet<FactureLigne> FactureLignes => Set<FactureLigne>();
     public DbSet<Paiement> Paiements => Set<Paiement>();
+    public DbSet<BonPreparation> BonsPreparation => Set<BonPreparation>();
+    public DbSet<BonPreparationLigne> BonPreparationLignes => Set<BonPreparationLigne>();
+    public DbSet<PaiementBonPreparation> PaiementsBonPreparation => Set<PaiementBonPreparation>();
     public DbSet<Avoir> Avoirs => Set<Avoir>();
     public DbSet<AvoirLigne> AvoirLignes => Set<AvoirLigne>();
     public DbSet<AvoirFournisseur> AvoirsFournisseurs => Set<AvoirFournisseur>();
@@ -132,6 +136,12 @@ public class AppDbContext : DbContext
             e.HasMany(f => f.Paiements).WithOne(p => p.Facture).HasForeignKey(p => p.FactureId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<BonPreparation>(e =>
+        {
+            e.HasMany(f => f.Lignes).WithOne(l => l.BonPreparation).HasForeignKey(l => l.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(f => f.Paiements).WithOne(p => p.BonPreparation).HasForeignKey(p => p.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<FactureLigne>(e =>
         {
             e.HasOne(l => l.BonLivraison).WithMany()
@@ -141,6 +151,11 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<Paiement>(e =>
+        {
+            e.Property(p => p.Mode).HasConversion<int>();
+        });
+
+        modelBuilder.Entity<PaiementBonPreparation>(e =>
         {
             e.Property(p => p.Mode).HasConversion<int>();
         });
