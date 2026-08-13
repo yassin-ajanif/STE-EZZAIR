@@ -438,22 +438,22 @@ public sealed class ReportService : IReportService
         }).ToList();
     }
 
-    public async Task<(decimal ht, decimal ttc, string devise)> GetStockValuationAsync(CancellationToken ct = default)
+    public async Task<(decimal achatHt, decimal venteHt, decimal profit, string devise)> GetStockValuationAsync(CancellationToken ct = default)
     {
         var dev = await GetDeviseAsync(ct);
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var produits = await db.Produits.AsNoTracking()
             .Where(p => p.StockActuel > 0)
-            .Select(p => new { p.StockActuel, p.PrixAchatHT, p.PrixVenteHT, p.TauxTVA })
+            .Select(p => new { p.StockActuel, p.PrixAchatHT, p.PrixVenteHT })
             .ToListAsync(ct);
 
-        decimal totalHt = 0, totalTtc = 0;
+        decimal achatHt = 0, venteHt = 0;
         foreach (var p in produits)
         {
-            totalHt += p.StockActuel * p.PrixAchatHT;
-            totalTtc += p.StockActuel * p.PrixVenteHT * (1 + p.TauxTVA / 100m);
+            achatHt += p.StockActuel * p.PrixAchatHT;
+            venteHt += p.StockActuel * p.PrixVenteHT;
         }
-        return (totalHt, totalTtc, dev);
+        return (achatHt, venteHt, venteHt - achatHt, dev);
     }
 
     public async Task<ReportProfitChargesResult> GetProfitChargesAsync(
@@ -540,15 +540,17 @@ public sealed class ReportService : IReportService
         foreach (var f in factures)
         {
             var factor = 1 - f.RemiseGlobale / 100m;
-            decimal ttc = 0, costHt = 0;
+            decimal ht = 0, ttc = 0, costHt = 0;
             foreach (var l in f.Lignes)
             {
                 var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+                ht += lht;
                 ttc += lht * (1 + l.TauxTVA / 100m);
                 costHt += l.Quantite * prodMap.GetValueOrDefault(l.ProduitId);
             }
+            ht *= factor;
             ttc *= factor;
-            var profit = ttc - costHt;
+            var profit = ht - costHt;
             totalMargin += profit;
             rows.Add(new ReportProfitChargeRow(
                 ReportProfitChargeKind.SaleMargin,
@@ -564,15 +566,17 @@ public sealed class ReportService : IReportService
         foreach (var b in bonsPreparation)
         {
             var factor = 1 - b.RemiseGlobale / 100m;
-            decimal ttc = 0, costHt = 0;
+            decimal ht = 0, ttc = 0, costHt = 0;
             foreach (var l in b.Lignes)
             {
                 var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+                ht += lht;
                 ttc += lht * (1 + l.TauxTVA / 100m);
                 costHt += l.Quantite * prodMap.GetValueOrDefault(l.ProduitId);
             }
+            ht *= factor;
             ttc *= factor;
-            var profit = ttc - costHt;
+            var profit = ht - costHt;
             totalMargin += profit;
             rows.Add(new ReportProfitChargeRow(
                 ReportProfitChargeKind.SaleMargin,

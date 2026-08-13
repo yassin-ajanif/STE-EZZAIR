@@ -53,6 +53,10 @@
                   Command="{Binding GoStockMovementsCommand}"/>
         </StackPanel>
 
+        <!-- Quick date presets (all date-filtered reports) -->
+        <shared:DatePresetChipsBar DataContext="{Binding DatePresets}"
+                                   IsVisible="{Binding DataContext.ShowDateFilter, ElementName=ThisControl}"/>
+
         <!-- Date range (hidden for unpaid) -->
         <Grid ColumnDefinitions="Auto,*,Auto,*,Auto" IsVisible="{Binding ShowDateFilter}"
               VerticalAlignment="Center">
@@ -454,17 +458,24 @@
                       BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="24">
                   <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding LblStockValHtLabel}" FontWeight="SemiBold"
+                    <TextBlock Text="{Binding LblStockValAchatLabel}" FontWeight="SemiBold"
                                FontSize="13" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding LblStockValHt}" FontSize="13"
+                    <TextBlock Text="{Binding LblStockValAchat}" FontSize="13"
                                VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding LblStockValTtcLabel}" FontWeight="SemiBold"
+                    <TextBlock Text="{Binding LblStockValVenteLabel}" FontWeight="SemiBold"
                                FontSize="13" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding LblStockValTtc}" FontSize="14" FontWeight="Bold"
+                    <TextBlock Text="{Binding LblStockValVente}" FontSize="13"
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource CourseraPrimaryBrush}"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding LblStockValProfitLabel}" FontWeight="SemiBold"
+                               FontSize="13" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LblStockValProfit}" FontSize="14" FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource CourseraSuccessBrush}"/>
                   </StackPanel>
                 </StackPanel>
               </Border>

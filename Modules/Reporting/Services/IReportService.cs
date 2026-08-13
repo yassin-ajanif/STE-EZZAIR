@@ -21,7 +21,7 @@ public interface IReportService
     Task<List<ReportStockMovementRow>> GetStockMovementsAsync(
         DateTime from, DateTime to, CancellationToken ct = default);
 
-    Task<(decimal ht, decimal ttc, string devise)> GetStockValuationAsync(CancellationToken ct = default);
+    Task<(decimal achatHt, decimal venteHt, decimal profit, string devise)> GetStockValuationAsync(CancellationToken ct = default);
 
     Task<ReportProfitChargesResult> GetProfitChargesAsync(
         DateTime from, DateTime to, CancellationToken ct = default);

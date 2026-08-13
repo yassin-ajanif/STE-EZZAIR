@@ -28,12 +28,20 @@ public partial class ReportsListViewModel : BaseViewModel
         _locale = locale;
         _locale.CultureApplied += (_, _) => RefreshLabels();
         Pagination = new PaginationHelper(ApplyCurrentPage);
+        DatePresets = new DatePresetChipsModel(_locale, (from, to) =>
+        {
+            DateFrom = new DateTimeOffset(from);
+            DateTo = new DateTimeOffset(to);
+            LoadReportCommand.Execute(null);
+        });
+        DatePresets.SyncSelection(DateFrom.Date, DateTo.Date);
         ShowProfitCharges = true;
         RefreshLabels();
         Title = _locale.T("Reports_Title");
     }
 
     public PaginationHelper Pagination { get; }
+    public DatePresetChipsModel DatePresets { get; }
 
     [ObservableProperty] private string _lblTitle = string.Empty;
     [ObservableProperty] private string _lblDateFrom = string.Empty;
@@ -71,10 +79,12 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblSaleByCustomerLabelProfit = string.Empty;
     [ObservableProperty] private string _lblSaleByCustomerTotalProfit = string.Empty;
     [ObservableProperty] private string _lblDailySalesTotalProfit = string.Empty;
-    [ObservableProperty] private string _lblStockValHtLabel = string.Empty;
-    [ObservableProperty] private string _lblStockValTtcLabel = string.Empty;
-    [ObservableProperty] private string _lblStockValHt = string.Empty;
-    [ObservableProperty] private string _lblStockValTtc = string.Empty;
+    [ObservableProperty] private string _lblStockValAchatLabel = string.Empty;
+    [ObservableProperty] private string _lblStockValVenteLabel = string.Empty;
+    [ObservableProperty] private string _lblStockValProfitLabel = string.Empty;
+    [ObservableProperty] private string _lblStockValAchat = string.Empty;
+    [ObservableProperty] private string _lblStockValVente = string.Empty;
+    [ObservableProperty] private string _lblStockValProfit = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalMargin = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsClient = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalPurchases = string.Empty;
@@ -138,8 +148,9 @@ public partial class ReportsListViewModel : BaseViewModel
         LblSaleByCustomerLabelHt = _locale.T("Reports_LblTotalHt");
         LblSaleByCustomerLabelTtc = _locale.T("Reports_LblTotalTtc");
         LblSaleByCustomerLabelProfit = _locale.T("Reports_LblTotalProfit");
-        LblStockValHtLabel = _locale.T("Reports_LblStockValHt");
-        LblStockValTtcLabel = _locale.T("Reports_LblStockValTtc");
+        LblStockValAchatLabel = _locale.T("Reports_LblStockValAchat");
+        LblStockValVenteLabel = _locale.T("Reports_LblStockValVente");
+        LblStockValProfitLabel = _locale.T("Reports_LblStockValProfit");
         LblProfitChargesMarginLabel = _locale.T("Reports_LblTotalSalesMargin");
         LblProfitChargesAvoirsClientLabel = _locale.T("Reports_LblTotalAvoirsClient");
         LblProfitChargesPurchasesLabel = _locale.T("Reports_LblTotalPurchases");
@@ -165,6 +176,12 @@ public partial class ReportsListViewModel : BaseViewModel
         ShowDateFilter = value != 5;
         LoadReportCommand.Execute(null);
     }
+
+    partial void OnDateFromChanged(DateTimeOffset value) =>
+        DatePresets.SyncSelection(value.Date, DateTo.Date);
+
+    partial void OnDateToChanged(DateTimeOffset value) =>
+        DatePresets.SyncSelection(DateFrom.Date, value.Date);
 
     [RelayCommand]
     private void GoProfitCharges()
@@ -289,8 +306,9 @@ public partial class ReportsListViewModel : BaseViewModel
     {
         _allStockMovements = await Task.Run(() => _reportService.GetStockMovementsAsync(from, to, ct), ct);
         var valuation = await Task.Run(() => _reportService.GetStockValuationAsync(ct), ct);
-        LblStockValHt = $"{valuation.ht:N2} {valuation.devise}";
-        LblStockValTtc = $"{valuation.ttc:N2} {valuation.devise}";
+        LblStockValAchat = $"{valuation.achatHt:N2} {valuation.devise}";
+        LblStockValVente = $"{valuation.venteHt:N2} {valuation.devise}";
+        LblStockValProfit = $"{valuation.profit:N2} {valuation.devise}";
         FinishPagedLoad(_allStockMovements.Count);
     }
 
