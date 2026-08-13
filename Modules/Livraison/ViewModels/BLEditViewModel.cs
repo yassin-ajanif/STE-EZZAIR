@@ -308,9 +308,13 @@ public partial class BLEditViewModel : BaseViewModel
             SelectedLine = row;
         }
 
-        AddLineCatalogPick = null;
-        AddLineSearchText = string.Empty;
-        _suppressAddLinePick = false;
+        DocumentLineSearchHelper.ClearAfterCatalogPick(() =>
+        {
+            _suppressAddLinePick = true;
+            AddLineCatalogPick = null;
+            AddLineSearchText = string.Empty;
+            _suppressAddLinePick = false;
+        });
         RefreshTotals();
     }
 

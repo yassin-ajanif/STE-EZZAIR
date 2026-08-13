@@ -362,9 +362,13 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             Lignes.Add(row);
             SelectedLine = row;
         }
-        AddLineCatalogPick = null;
-        AddLineSearchText = string.Empty;
-        _suppressAddLinePick = false;
+        DocumentLineSearchHelper.ClearAfterCatalogPick(() =>
+        {
+            _suppressAddLinePick = true;
+            AddLineCatalogPick = null;
+            AddLineSearchText = string.Empty;
+            _suppressAddLinePick = false;
+        });
         RefreshTotals();
     }
 

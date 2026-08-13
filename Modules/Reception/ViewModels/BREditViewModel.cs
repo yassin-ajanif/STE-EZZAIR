@@ -294,9 +294,13 @@ public partial class BREditViewModel : BaseViewModel
             Lignes.Add(row);
             SelectedLine = row;
         }
-        AddLineCatalogPick = null;
-        AddLineSearchText = string.Empty;
-        _suppressAddLinePick = false;
+        DocumentLineSearchHelper.ClearAfterCatalogPick(() =>
+        {
+            _suppressAddLinePick = true;
+            AddLineCatalogPick = null;
+            AddLineSearchText = string.Empty;
+            _suppressAddLinePick = false;
+        });
     }
 
     public async Task LoadAsync(int? id, CancellationToken cancellationToken = default)
