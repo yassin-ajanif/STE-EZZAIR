@@ -46,8 +46,16 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Tiers>(e =>
         {
-            e.ToTable("Tiers");
+            e.ToTable("Tiers", t =>
+            {
+                t.HasCheckConstraint("CK_Tiers_Categorie", "Categorie IN ('Officiel', 'Comptoir')");
+            });
             e.Property(t => t.Type).HasConversion<int>();
+            e.Property(t => t.Categorie)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .HasDefaultValue(CategorieTiers.Officiel)
+                .IsRequired();
         });
 
         modelBuilder.Entity<Produit>(e =>
