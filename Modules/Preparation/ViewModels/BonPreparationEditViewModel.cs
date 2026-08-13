@@ -656,6 +656,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             }
 
             await ResyncStockAsync(db, entity, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
 
             Numero = entity.Numero;
             await _dialog.ShowInfoAsync(_locale.T("Bp_Title"), _locale.T("Bp_Saved"), cancellationToken);
