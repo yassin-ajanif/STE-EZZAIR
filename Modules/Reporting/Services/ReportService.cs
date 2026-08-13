@@ -1,7 +1,8 @@
+using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.Facturation.Models;
+using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Reporting.ViewModels;
 using GestionCommerciale.Modules.Stock.Models;
-using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -453,6 +454,278 @@ public sealed class ReportService : IReportService
             totalTtc += p.StockActuel * p.PrixVenteHT * (1 + p.TauxTVA / 100m);
         }
         return (totalHt, totalTtc, dev);
+    }
+
+    public async Task<ReportProfitChargesResult> GetProfitChargesAsync(
+        DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var dev = await GetDeviseAsync(ct);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var toEnd = to.Date.AddDays(1);
+        var rows = new List<ReportProfitChargeRow>();
+
+        var typeMarge = _locale.T("Reports_TypeSaleMargin");
+        var typeAchat = _locale.T("Reports_TypePurchase");
+        var typeCharge = _locale.T("Reports_TypeCharge");
+        var typeAvoirClient = _locale.T("Reports_TypeAvoirClient");
+        var typeAvoirFournisseur = _locale.T("Reports_TypeAvoirFournisseur");
+
+        var factures = await db.Factures.AsNoTracking()
+            .Where(f => f.Date >= from && f.Date < toEnd)
+            .Select(f => new
+            {
+                f.Numero,
+                f.Date,
+                f.RemiseGlobale,
+                Lignes = f.Lignes!.Select(l => new
+                {
+                    l.ProduitId,
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        var bonsPreparation = await db.BonsPreparation.AsNoTracking()
+            .Where(b => b.Date >= from && b.Date < toEnd)
+            .Select(b => new
+            {
+                b.Numero,
+                b.Date,
+                b.RemiseGlobale,
+                Lignes = b.Lignes!.Select(l => new
+                {
+                    l.ProduitId,
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        var avoirsClient = await db.Avoirs.AsNoTracking()
+            .Where(a => a.Date >= from && a.Date < toEnd)
+            .Select(a => new
+            {
+                a.Numero,
+                a.Date,
+                Lignes = a.Lignes!.Select(l => new
+                {
+                    l.ProduitId,
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        var allProdIds = factures.SelectMany(f => f.Lignes).Select(l => l.ProduitId)
+            .Concat(bonsPreparation.SelectMany(b => b.Lignes).Select(l => l.ProduitId))
+            .Concat(avoirsClient.SelectMany(a => a.Lignes).Select(l => l.ProduitId))
+            .Distinct()
+            .ToList();
+        var prodMap = allProdIds.Count == 0
+            ? new Dictionary<int, decimal>()
+            : await db.Produits.AsNoTracking()
+                .Where(p => allProdIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.PrixAchatHT, ct);
+
+        decimal totalMargin = 0;
+        decimal totalAvoirsClient = 0;
+
+        foreach (var f in factures)
+        {
+            var factor = 1 - f.RemiseGlobale / 100m;
+            decimal ttc = 0, costHt = 0;
+            foreach (var l in f.Lignes)
+            {
+                var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+                ttc += lht * (1 + l.TauxTVA / 100m);
+                costHt += l.Quantite * prodMap.GetValueOrDefault(l.ProduitId);
+            }
+            ttc *= factor;
+            var profit = ttc - costHt;
+            totalMargin += profit;
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.SaleMargin,
+                typeMarge,
+                f.Numero ?? string.Empty,
+                f.Date,
+                ttc,
+                profit,
+                dev,
+                profit >= 0));
+        }
+
+        foreach (var b in bonsPreparation)
+        {
+            var factor = 1 - b.RemiseGlobale / 100m;
+            decimal ttc = 0, costHt = 0;
+            foreach (var l in b.Lignes)
+            {
+                var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+                ttc += lht * (1 + l.TauxTVA / 100m);
+                costHt += l.Quantite * prodMap.GetValueOrDefault(l.ProduitId);
+            }
+            ttc *= factor;
+            var profit = ttc - costHt;
+            totalMargin += profit;
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.SaleMargin,
+                typeMarge,
+                b.Numero ?? string.Empty,
+                b.Date,
+                ttc,
+                profit,
+                dev,
+                profit >= 0));
+        }
+
+        foreach (var a in avoirsClient)
+        {
+            var lignes = a.Lignes.Select(l => new AvoirLigne
+            {
+                Quantite = l.Quantite,
+                PrixUnitaireHT = l.PrixUnitaireHT,
+                Remise = l.Remise,
+                TauxTVA = l.TauxTVA
+            }).ToList();
+            var (_, _, ttc) = DocumentTotalsHelper.AvoirTotals(lignes);
+            totalAvoirsClient += ttc;
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.AvoirClient,
+                typeAvoirClient,
+                a.Numero ?? string.Empty,
+                a.Date,
+                ttc,
+                -ttc,
+                dev,
+                false));
+        }
+
+        var facturesFournisseur = await db.FacturesFournisseurs.AsNoTracking()
+            .Where(f => f.Date >= from && f.Date < toEnd)
+            .Select(f => new
+            {
+                f.Numero,
+                f.Date,
+                f.RemiseGlobale,
+                Lignes = f.Lignes!.Select(l => new
+                {
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        decimal totalPurchases = 0;
+        decimal totalAvoirsFournisseur = 0;
+        foreach (var f in facturesFournisseur)
+        {
+            var lignes = f.Lignes.Select(l => new FactureFournisseurLigne
+            {
+                Quantite = l.Quantite,
+                PrixUnitaireHT = l.PrixUnitaireHT,
+                Remise = l.Remise,
+                TauxTVA = l.TauxTVA
+            }).ToList();
+            var (_, _, ttc) = DocumentTotalsHelper.FactureFournisseurTotals(lignes, f.RemiseGlobale);
+            totalPurchases += ttc;
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.Purchase,
+                typeAchat,
+                f.Numero ?? string.Empty,
+                f.Date,
+                ttc,
+                -ttc,
+                dev,
+                false));
+        }
+
+        var avoirsFournisseur = await db.AvoirsFournisseurs.AsNoTracking()
+            .Where(a => a.Date >= from && a.Date < toEnd)
+            .Select(a => new
+            {
+                a.Numero,
+                a.Date,
+                Lignes = a.Lignes!.Select(l => new
+                {
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        foreach (var a in avoirsFournisseur)
+        {
+            var lignes = a.Lignes.Select(l => new AvoirFournisseurLigne
+            {
+                Quantite = l.Quantite,
+                PrixUnitaireHT = l.PrixUnitaireHT,
+                Remise = l.Remise,
+                TauxTVA = l.TauxTVA
+            }).ToList();
+            var (_, _, ttc) = DocumentTotalsHelper.AvoirFournisseurTotals(lignes);
+            totalAvoirsFournisseur += ttc;
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.AvoirFournisseur,
+                typeAvoirFournisseur,
+                a.Numero ?? string.Empty,
+                a.Date,
+                ttc,
+                ttc,
+                dev,
+                true));
+        }
+
+        var charges = await db.Charges.AsNoTracking()
+            .Include(c => c.TypeCharge)
+            .Where(c => c.Date >= from && c.Date < toEnd)
+            .ToListAsync(ct);
+
+        decimal totalCharges = 0;
+        foreach (var c in charges)
+        {
+            totalCharges += c.MontantTtc;
+            var label = string.IsNullOrWhiteSpace(c.Libelle)
+                ? (c.Note ?? string.Empty)
+                : string.IsNullOrWhiteSpace(c.Note)
+                    ? c.Libelle
+                    : $"{c.Libelle} — {c.Note}";
+
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.Charge,
+                c.TypeCharge?.Nom ?? typeCharge,
+                label,
+                c.Date,
+                c.MontantTtc,
+                -c.MontantTtc,
+                dev,
+                false));
+        }
+
+        var sorted = rows.OrderByDescending(r => r.Date).ThenBy(r => r.TypeLabel).ToList();
+        var net = totalMargin - totalAvoirsClient - totalPurchases + totalAvoirsFournisseur - totalCharges;
+
+        return new ReportProfitChargesResult
+        {
+            TotalSalesMargin = totalMargin,
+            TotalAvoirsClient = totalAvoirsClient,
+            TotalPurchases = totalPurchases,
+            TotalAvoirsFournisseur = totalAvoirsFournisseur,
+            TotalCharges = totalCharges,
+            NetResult = net,
+            Devise = dev,
+            Rows = sorted
+        };
     }
 
     private async Task<string> GetDeviseAsync(CancellationToken ct = default)

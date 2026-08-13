@@ -267,3 +267,63 @@ public sealed class ReportStockMovementRow
     public string LblQty { get; }
     public string LblStockApres { get; }
 }
+
+public enum ReportProfitChargeKind
+{
+    SaleMargin,
+    AvoirClient,
+    Purchase,
+    AvoirFournisseur,
+    Charge
+}
+
+public sealed class ReportProfitChargeRow
+{
+    public ReportProfitChargeRow(
+        ReportProfitChargeKind kind,
+        string typeLabel,
+        string refLibelle,
+        DateTime date,
+        decimal montantHt,
+        decimal amount,
+        string devise,
+        bool isPositive)
+    {
+        Kind = kind;
+        TypeLabel = typeLabel;
+        RefLibelle = refLibelle;
+        Date = date;
+        MontantHt = montantHt;
+        Amount = amount;
+        Devise = devise;
+        IsPositive = isPositive;
+        LblDate = date.ToString("d");
+        LblMontantHt = montantHt > 0 ? $"{montantHt:N2} {devise}" : "—";
+        var sign = amount >= 0 ? "+" : "";
+        LblAmount = $"{sign}{amount:N2} {devise}";
+    }
+
+    public ReportProfitChargeKind Kind { get; }
+    public string TypeLabel { get; }
+    public string RefLibelle { get; }
+    public DateTime Date { get; }
+    public decimal MontantHt { get; }
+    public decimal Amount { get; }
+    public string Devise { get; }
+    public bool IsPositive { get; }
+    public string LblDate { get; }
+    public string LblMontantHt { get; }
+    public string LblAmount { get; }
+}
+
+public sealed class ReportProfitChargesResult
+{
+    public required decimal TotalSalesMargin { get; init; }
+    public required decimal TotalAvoirsClient { get; init; }
+    public required decimal TotalPurchases { get; init; }
+    public required decimal TotalAvoirsFournisseur { get; init; }
+    public required decimal TotalCharges { get; init; }
+    public required decimal NetResult { get; init; }
+    public required string Devise { get; init; }
+    public required List<ReportProfitChargeRow> Rows { get; init; }
+}
