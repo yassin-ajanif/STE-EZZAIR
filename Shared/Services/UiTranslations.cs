@@ -23,6 +23,7 @@ public static class UiTranslations
         ["Nav_BC"] = ("Bons de commande", "أوامر الشراء"),
         ["Nav_BR"] = ("Bons de réception", "أذون الاستلام"),
         ["Nav_FacturesFournisseur"] = ("Facturation achat", "فواتير الشراء"),
+        ["Nav_Charges"] = ("Charges", "المصاريف"),
         ["Nav_StockAdmin"] = ("Stock & administration", "المخزون والإدارة"),
         ["Nav_Stock"] = ("Stock", "المخزون"),
         ["Nav_Produits"] = ("Produits", "المنتجات"),

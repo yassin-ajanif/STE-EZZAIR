@@ -23,6 +23,7 @@ public interface ICurrentUserSession
     bool CanAccessBC { get; }
     bool CanAccessFacturation { get; }
     bool CanAccessAvoir { get; }
+    bool CanAccessCharges { get; }
     bool CanAccessReporting { get; }
     bool CanAccessUsers { get; }
     bool CanAccessSettings { get; }
