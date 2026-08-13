@@ -1,17 +1,16 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace GestionCommerciale.Shared.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCharges : Migration
+    public partial class FixChargesRemoveLegacyColumns : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Idempotent: some DBs already have "Charges" without TypesCharges / migration history.
+            // Ensure TypesCharges exists (needed by FK).
             migrationBuilder.Sql(
                 """
                 CREATE TABLE IF NOT EXISTS "TypesCharges" (
@@ -22,16 +21,15 @@ namespace GestionCommerciale.Shared.Database.Migrations
                     "UpdatedAt" TEXT NOT NULL,
                     "CreatedByUserId" INTEGER NULL
                 );
-                """);
-
-            migrationBuilder.Sql(
-                """
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_TypesCharges_Nom" ON "TypesCharges" ("Nom");
                 """);
 
+            // Rebuild Charges without legacy FournisseurId / BeneficiaireLibre columns.
             migrationBuilder.Sql(
                 """
-                CREATE TABLE IF NOT EXISTS "Charges" (
+                DROP TABLE IF EXISTS "Charges_rebuild";
+
+                CREATE TABLE "Charges_rebuild" (
                     "Id" INTEGER NOT NULL CONSTRAINT "PK_Charges" PRIMARY KEY AUTOINCREMENT,
                     "TypeChargeId" INTEGER NOT NULL,
                     "Date" TEXT NOT NULL,
@@ -44,15 +42,26 @@ namespace GestionCommerciale.Shared.Database.Migrations
                     CONSTRAINT "FK_Charges_TypesCharges_TypeChargeId"
                         FOREIGN KEY ("TypeChargeId") REFERENCES "TypesCharges" ("Id") ON DELETE RESTRICT
                 );
-                """);
 
-            migrationBuilder.Sql(
-                """
+                INSERT INTO "Charges_rebuild" (
+                    "Id", "TypeChargeId", "Date", "Libelle", "MontantTtc", "Note",
+                    "CreatedAt", "UpdatedAt", "CreatedByUserId"
+                )
+                SELECT
+                    "Id",
+                    "TypeChargeId",
+                    "Date",
+                    "Libelle",
+                    "MontantTtc",
+                    COALESCE("Note", ''),
+                    "CreatedAt",
+                    "UpdatedAt",
+                    "CreatedByUserId"
+                FROM "Charges";
+
+                DROP TABLE "Charges";
+                ALTER TABLE "Charges_rebuild" RENAME TO "Charges";
                 CREATE INDEX IF NOT EXISTS "IX_Charges_Date" ON "Charges" ("Date");
-                """);
-
-            migrationBuilder.Sql(
-                """
                 CREATE INDEX IF NOT EXISTS "IX_Charges_TypeChargeId" ON "Charges" ("TypeChargeId");
                 """);
         }
@@ -60,11 +69,7 @@ namespace GestionCommerciale.Shared.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Charges");
-
-            migrationBuilder.DropTable(
-                name: "TypesCharges");
+            // Irreversible schema cleanup.
         }
     }
 }

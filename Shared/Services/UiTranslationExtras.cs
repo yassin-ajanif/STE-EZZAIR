@@ -417,6 +417,11 @@ internal static class UiTranslationExtras
         ["Charges_ErrTtc"] = ("Le montant TTC doit être supérieur à 0.", "يجب أن يكون المبلغ أكبر من 0."),
         ["Charges_ErrTypeNom"] = ("Saisissez un nom de type.", "أدخل اسم النوع."),
         ["Charges_ErrTypeExists"] = ("Ce type existe déjà.", "هذا النوع موجود مسبقاً."),
+        ["Charges_MenuDeleteType"] = ("Supprimer", "حذف"),
+        ["Charges_MenuEditType"] = ("Modifier", "تعديل"),
+        ["Charges_EditTypePrompt"] = ("Nouveau nom pour le type « {0} » :", "الاسم الجديد للنوع « {0} »:"),
+        ["Charges_ConfirmDeleteType"] = ("Supprimer le type « {0} » ?", "حذف النوع « {0} »؟"),
+        ["Charges_ErrTypeInUse"] = ("Ce type est déjà utilisé par des charges enregistrées et ne peut pas être supprimé.", "هذا النوع مستخدم في مصاريف محفوظة ولا يمكن حذفه."),
     };
 
     internal static bool TryGet(string key, out (string Fr, string Ar) pair) => Map.TryGetValue(key, out pair);

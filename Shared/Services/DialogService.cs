@@ -223,7 +223,7 @@ public sealed class DialogService : IDialogService
         return licenseKey;
     }
 
-    public async Task<string?> ShowPromptAsync(string title, string message, CancellationToken cancellationToken = default)
+    public async Task<string?> ShowPromptAsync(string title, string message, CancellationToken cancellationToken = default, string? initialValue = null)
     {
         var owner = GetMainWindow();
         var w = new Window
@@ -247,7 +247,8 @@ public sealed class DialogService : IDialogService
 
         var input = new TextBox
         {
-            MinWidth = 260
+            MinWidth = 260,
+            Text = initialValue ?? string.Empty
         };
         panel.Children.Add(input);
 

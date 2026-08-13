@@ -104,9 +104,11 @@ public partial class ChargeListViewModel : BaseViewModel
                 .Skip(Pagination.Skip).Take(Pagination.PageSize)
                 .ToListAsync(ct);
             var typeIds = docs.Select(d => d.TypeChargeId).Distinct().ToList();
-            var types = await db.TypesCharges.AsNoTracking()
-                .Where(t => typeIds.Contains(t.Id))
-                .ToDictionaryAsync(t => t.Id, t => t.Nom, ct);
+            var types = typeIds.Count == 0
+                ? new Dictionary<int, string>()
+                : await db.TypesCharges.AsNoTracking()
+                    .Where(t => typeIds.Contains(t.Id))
+                    .ToDictionaryAsync(t => t.Id, t => t.Nom, ct);
 
             var selId = Selected?.Doc.Id;
             Rows.Clear();
@@ -115,6 +117,10 @@ public partial class ChargeListViewModel : BaseViewModel
             Pagination.TotalCount = total;
             if (selId is { } id)
                 Selected = Rows.FirstOrDefault(x => x.Doc.Id == id);
+        }
+        catch (Exception ex)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), ex.Message, ct);
         }
         finally
         {

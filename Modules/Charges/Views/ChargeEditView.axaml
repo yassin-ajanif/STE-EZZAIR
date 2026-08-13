@@ -3,6 +3,7 @@
              xmlns:vm="using:GestionCommerciale.Modules.Charges.ViewModels"
              xmlns:m="using:GestionCommerciale.Modules.Charges.Models"
              x:Class="GestionCommerciale.Modules.Charges.Views.ChargeEditView"
+             x:Name="ChargeEditRoot"
              x:DataType="vm:ChargeEditViewModel">
   <ScrollViewer>
     <StackPanel Spacing="12">
@@ -60,11 +61,23 @@
                      BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="8">
               <ListBox.ItemTemplate>
                 <DataTemplate DataType="m:TypeCharge">
-                  <Grid ColumnDefinitions="*,Auto" Margin="4,2">
-                    <TextBlock Grid.Column="0" Text="{Binding Nom}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Actif, Converter={StaticResource BoolActifLabelConverter}}"
-                               Opacity="0.75" Margin="8,0,0,0"/>
-                  </Grid>
+                  <Border Background="Transparent" Padding="0">
+                    <Border.ContextMenu>
+                      <ContextMenu Opening="OnTypeContextMenuOpening">
+                        <MenuItem Header="{Binding #ChargeEditRoot.((vm:ChargeEditViewModel)DataContext).MenuEditType}"
+                                  Command="{Binding #ChargeEditRoot.((vm:ChargeEditViewModel)DataContext).EditTypeCommand}"
+                                  CommandParameter="{Binding}"/>
+                        <MenuItem Header="{Binding #ChargeEditRoot.((vm:ChargeEditViewModel)DataContext).MenuDeleteType}"
+                                  Command="{Binding #ChargeEditRoot.((vm:ChargeEditViewModel)DataContext).DeleteTypeCommand}"
+                                  CommandParameter="{Binding}"/>
+                      </ContextMenu>
+                    </Border.ContextMenu>
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,2">
+                      <TextBlock Grid.Column="0" Text="{Binding Nom}" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="1" Text="{Binding Actif, Converter={StaticResource BoolActifLabelConverter}}"
+                                 Opacity="0.75" Margin="8,0,0,0"/>
+                    </Grid>
+                  </Border>
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>

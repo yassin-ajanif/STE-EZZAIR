@@ -67,6 +67,8 @@ public partial class ChargeEditViewModel : BaseViewModel
     [ObservableProperty] private string _btnToggleActif = string.Empty;
     [ObservableProperty] private string _colNom = string.Empty;
     [ObservableProperty] private string _colActif = string.Empty;
+    [ObservableProperty] private string _menuDeleteType = string.Empty;
+    [ObservableProperty] private string _menuEditType = string.Empty;
 
     public bool CanDelete => ChargeId.HasValue;
 
@@ -87,6 +89,8 @@ public partial class ChargeEditViewModel : BaseViewModel
         BtnToggleActif = _locale.T("Btn_ToggleActif");
         ColNom = _locale.T("Charges_ColNom");
         ColActif = _locale.T("Lbl_ColActif");
+        MenuDeleteType = _locale.T("Charges_MenuDeleteType");
+        MenuEditType = _locale.T("Charges_MenuEditType");
         Title = ChargeId.HasValue
             ? _locale.Tf("Charges_EditTitle", Libelle)
             : _locale.T("Charges_NewTitle");
@@ -147,15 +151,31 @@ public partial class ChargeEditViewModel : BaseViewModel
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         var all = await db.TypesCharges.AsNoTracking().OrderBy(t => t.Nom).ToListAsync(cancellationToken);
+
+        var selectedTypeId = SelectedType?.Id ?? TypeChargeId;
+        var selectedGestionId = SelectedTypeGestion?.Id;
+
+        // Avalonia ComboBox/ListBox can crash if ItemsSource is cleared while SelectedItem is set.
+        SelectedType = null;
+        SelectedTypeGestion = null;
+
         TypesGestion.Clear();
         foreach (var t in all) TypesGestion.Add(t);
 
         TypesDisponibles.Clear();
-        foreach (var t in all.Where(t => t.Actif || t.Id == TypeChargeId)) TypesDisponibles.Add(t);
+        foreach (var t in all.Where(t => t.Actif || t.Id == TypeChargeId || t.Id == selectedTypeId))
+            TypesDisponibles.Add(t);
 
-        if (SelectedType != null)
-            SelectedType = TypesDisponibles.FirstOrDefault(t => t.Id == SelectedType.Id)
-                ?? TypesGestion.FirstOrDefault(t => t.Id == SelectedType.Id);
+        if (selectedTypeId > 0)
+        {
+            SelectedType = TypesDisponibles.FirstOrDefault(t => t.Id == selectedTypeId)
+                ?? TypesGestion.FirstOrDefault(t => t.Id == selectedTypeId);
+            if (SelectedType != null)
+                TypeChargeId = SelectedType.Id;
+        }
+
+        if (selectedGestionId is int gid)
+            SelectedTypeGestion = TypesGestion.FirstOrDefault(t => t.Id == gid);
     }
 
     [RelayCommand]
@@ -212,6 +232,11 @@ public partial class ChargeEditViewModel : BaseViewModel
             await _dialog.ShowInfoAsync(_locale.T("Charges_Title"), _locale.T("Charges_Saved"), cancellationToken);
             await LoadAsync(ChargeId, cancellationToken);
         }
+        catch (Exception ex)
+        {
+            var detail = ex.InnerException?.Message ?? ex.Message;
+            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), detail, cancellationToken);
+        }
         finally
         {
             IsBusy = false;
@@ -252,25 +277,33 @@ public partial class ChargeEditViewModel : BaseViewModel
             return;
         }
 
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        if (await db.TypesCharges.AnyAsync(t => t.Nom.ToLower() == nom.ToLower(), cancellationToken))
+        try
         {
-            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), _locale.T("Charges_ErrTypeExists"), cancellationToken);
-            return;
-        }
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            if (await db.TypesCharges.AnyAsync(t => t.Nom.ToLower() == nom.ToLower(), cancellationToken))
+            {
+                await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), _locale.T("Charges_ErrTypeExists"), cancellationToken);
+                return;
+            }
 
-        var t = new TypeCharge
+            var t = new TypeCharge
+            {
+                Nom = nom,
+                Actif = true,
+                CreatedByUserId = _session.UserId
+            };
+            db.TypesCharges.Add(t);
+            await db.SaveChangesAsync(cancellationToken);
+            NewTypeNom = string.Empty;
+            TypeChargeId = t.Id;
+            await ReloadTypesAsync(cancellationToken);
+            SelectedType = TypesDisponibles.FirstOrDefault(x => x.Id == t.Id);
+            SelectedTypeGestion = TypesGestion.FirstOrDefault(x => x.Id == t.Id);
+        }
+        catch (Exception ex)
         {
-            Nom = nom,
-            Actif = true,
-            CreatedByUserId = _session.UserId
-        };
-        db.TypesCharges.Add(t);
-        await db.SaveChangesAsync(cancellationToken);
-        NewTypeNom = string.Empty;
-        await ReloadTypesAsync(cancellationToken);
-        TypeChargeId = t.Id;
-        SelectedType = TypesDisponibles.FirstOrDefault(x => x.Id == t.Id);
+            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), ex.Message, cancellationToken);
+        }
     }
 
     [RelayCommand]
@@ -283,6 +316,89 @@ public partial class ChargeEditViewModel : BaseViewModel
         await db.SaveChangesAsync(cancellationToken);
         await ReloadTypesAsync(cancellationToken);
         SelectedTypeGestion = TypesGestion.FirstOrDefault(x => x.Id == t.Id);
+    }
+
+    [RelayCommand]
+    private async Task EditTypeAsync(TypeCharge? type, CancellationToken cancellationToken)
+    {
+        if (type == null) return;
+
+        var nouveauNom = await _dialog.ShowPromptAsync(
+            _locale.T("Charges_Title"),
+            _locale.Tf("Charges_EditTypePrompt", type.Nom),
+            cancellationToken,
+            type.Nom);
+
+        if (nouveauNom is null) return;
+
+        nouveauNom = nouveauNom.Trim();
+        if (string.IsNullOrWhiteSpace(nouveauNom))
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), _locale.T("Charges_ErrTypeNom"), cancellationToken);
+            return;
+        }
+
+        if (string.Equals(nouveauNom, type.Nom, StringComparison.Ordinal))
+            return;
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        if (await db.TypesCharges.AnyAsync(
+                t => t.Id != type.Id && t.Nom.ToLower() == nouveauNom.ToLower(),
+                cancellationToken))
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Charges_Title"), _locale.T("Charges_ErrTypeExists"), cancellationToken);
+            return;
+        }
+
+        var entity = await db.TypesCharges.FirstAsync(t => t.Id == type.Id, cancellationToken);
+        entity.Nom = nouveauNom;
+        await db.SaveChangesAsync(cancellationToken);
+
+        await ReloadTypesAsync(cancellationToken);
+        SelectedTypeGestion = TypesGestion.FirstOrDefault(t => t.Id == type.Id);
+        if (TypeChargeId == type.Id)
+            SelectedType = TypesDisponibles.FirstOrDefault(t => t.Id == type.Id)
+                ?? TypesGestion.FirstOrDefault(t => t.Id == type.Id);
+    }
+
+    [RelayCommand]
+    private async Task DeleteTypeAsync(TypeCharge? type, CancellationToken cancellationToken)
+    {
+        if (type == null) return;
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var inUse = await db.Charges.AsNoTracking().AnyAsync(c => c.TypeChargeId == type.Id, cancellationToken);
+        if (inUse)
+        {
+            await _dialog.ShowErrorAsync(
+                _locale.T("Charges_Title"),
+                _locale.Tf("Charges_ErrTypeInUse", type.Nom),
+                cancellationToken);
+            return;
+        }
+
+        if (!await _dialog.ConfirmAsync(
+                _locale.T("Charges_Title"),
+                _locale.Tf("Charges_ConfirmDeleteType", type.Nom),
+                cancellationToken))
+            return;
+
+        var entity = await db.TypesCharges.FirstAsync(t => t.Id == type.Id, cancellationToken);
+        db.TypesCharges.Remove(entity);
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (TypeChargeId == type.Id)
+        {
+            TypeChargeId = 0;
+            SelectedType = null;
+        }
+
+        if (SelectedTypeGestion?.Id == type.Id)
+            SelectedTypeGestion = null;
+
+        await ReloadTypesAsync(cancellationToken);
+        if (SelectedType == null)
+            SelectedType = TypesDisponibles.FirstOrDefault();
     }
 
     [RelayCommand]
