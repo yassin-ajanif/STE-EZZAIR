@@ -82,6 +82,7 @@ public partial class BLEditViewModel : BaseViewModel
         Title = _locale.T("BL_Title");
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         RefreshBlUi();
+        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -214,7 +215,8 @@ public partial class BLEditViewModel : BaseViewModel
             : _locale.Tf("BL_LinkedBcc", BonCommandeReference);
     }
 
-    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BLLineRow> Lignes { get; } = [];
 
@@ -280,6 +282,7 @@ public partial class BLEditViewModel : BaseViewModel
     partial void OnClientIdChanged(int value)
     {
         if (SelectedClient?.Id == value) return;
+        ClientLookup.EnsureCategoryFor(value);
         SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
     }
 
@@ -322,8 +325,7 @@ public partial class BLEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);
@@ -405,8 +407,7 @@ public partial class BLEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);
@@ -446,8 +447,7 @@ public partial class BLEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);

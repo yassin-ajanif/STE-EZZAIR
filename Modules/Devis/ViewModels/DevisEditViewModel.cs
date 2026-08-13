@@ -69,6 +69,7 @@ public partial class DevisEditViewModel : BaseViewModel
         Title = _locale.T("Devis_Title");
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         RefreshDevisUi();
+        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -137,7 +138,8 @@ public partial class DevisEditViewModel : BaseViewModel
         LblDocColMontantTtc = _locale.T("DocLine_ColMontantTtc");
     }
 
-    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<DevisLineRow> Lignes { get; } = [];
 
@@ -270,6 +272,7 @@ public partial class DevisEditViewModel : BaseViewModel
     partial void OnClientIdChanged(int value)
     {
         if (SelectedClient?.Id == value) return;
+        ClientLookup.EnsureCategoryFor(value);
         SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
     }
 
@@ -361,8 +364,7 @@ public partial class DevisEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);

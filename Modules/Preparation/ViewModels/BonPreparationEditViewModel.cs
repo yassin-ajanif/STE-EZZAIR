@@ -74,9 +74,11 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         _uiPreferences.LoadDocumentLineColumns("bon_preparation", LineGridColumns);
         Title = _locale.T("Bp_Title");
         RefreshBonPreparationUi();
+        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
-    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BonPreparationLineRow> Lignes { get; } = [];
     public ObservableCollection<BonPreparationPaiementRowViewModel> Paiements { get; } = [];
@@ -445,6 +447,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     partial void OnClientIdChanged(int value)
     {
         if (SelectedClient?.Id == value) return;
+        ClientLookup.EnsureCategoryFor(value);
         SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
     }
 
@@ -513,8 +516,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);

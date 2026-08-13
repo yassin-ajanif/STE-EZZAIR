@@ -62,6 +62,7 @@ public partial class BCVEditViewModel : BaseViewModel
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         Title = _locale.T("BCC_Title");
         RefreshBccUi();
+        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -157,7 +158,8 @@ public partial class BCVEditViewModel : BaseViewModel
         UpdateTotalLabels(TotalHt, TotalTva, TotalTtc);
     }
 
-    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BCVLineRow> Lignes { get; } = [];
 
@@ -284,6 +286,7 @@ public partial class BCVEditViewModel : BaseViewModel
     partial void OnClientIdChanged(int value)
     {
         if (SelectedClient?.Id == value) return;
+        ClientLookup.EnsureCategoryFor(value);
         SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
     }
 
@@ -296,8 +299,7 @@ public partial class BCVEditViewModel : BaseViewModel
         var clients = await db.Tiers.AsNoTracking()
             .Where(t => t.Actif && (t.Type == GestionCommerciale.Modules.Tiers.Models.TypeTiers.Client || t.Type == GestionCommerciale.Modules.Tiers.Models.TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);

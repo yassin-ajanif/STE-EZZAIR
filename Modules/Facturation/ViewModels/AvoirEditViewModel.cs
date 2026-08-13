@@ -110,10 +110,12 @@ public partial class AvoirEditViewModel : BaseViewModel
         _uiPreferences.LoadDocumentLineColumns("avoir", LineGridColumns);
         Title = _locale.T("Avoir_Title");
         RefreshAvoirUi();
+        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
         _ = LoadClientsAsync(CancellationToken.None);
     }
 
-    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<Produit> Produits { get; } = [];
     public ObservableCollection<AvoirLineRow> Lignes { get; } = [];
 
@@ -255,6 +257,7 @@ public partial class AvoirEditViewModel : BaseViewModel
     partial void OnClientIdChanged(int value)
     {
         if (SelectedClient?.Id == value) return;
+        ClientLookup.EnsureCategoryFor(value);
         SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
     }
 
@@ -309,9 +312,10 @@ public partial class AvoirEditViewModel : BaseViewModel
     private async Task LoadClientsAsync(CancellationToken ct)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        var clients = await db.Tiers.AsNoTracking().Where(t => t.Actif).OrderBy(t => t.Nom).ToListAsync(ct);
-        Clients.Clear();
-        foreach (var c in clients) Clients.Add(c);
+        var clients = await db.Tiers.AsNoTracking()
+            .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
+            .OrderBy(t => t.Nom).ToListAsync(ct);
+        ClientLookup.ReplaceAll(clients);
     }
 
     private async Task LoadProduitsAsync(CancellationToken ct)

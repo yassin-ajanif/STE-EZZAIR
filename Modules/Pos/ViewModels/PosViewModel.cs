@@ -7,6 +7,7 @@ using GestionCommerciale.Modules.Pos.Models;
 using GestionCommerciale.Modules.Stock.Services;
 using GestionCommerciale.Modules.Pos.Services;
 using GestionCommerciale.Modules.Stock.Models;
+using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -59,6 +60,8 @@ public partial class PosViewModel : BaseViewModel
             OnPropertyChanged(nameof(LabelRemiseGlobale));
             OnPropertyChanged(nameof(LabelRemiseGlobaleMontant));
         };
+        ClientLookup.Categorie = CategorieTiers.Comptoir;
+        ClientLookup.BindSelection(() => SelectedClient?.Id ?? 0, c => SelectedClient = c);
         _ = LoadClientsAsync();
         _ = LoadSettingsAsync();
     }
@@ -74,7 +77,8 @@ public partial class PosViewModel : BaseViewModel
 
     public ObservableCollection<ProductSearchRow> SearchResults { get; } = [];
     public ObservableCollection<CartLineRow> Cart { get; } = [];
-    public ObservableCollection<TiersEntity> Clients { get; } = [];
+    public ClientCategoryFilter ClientLookup { get; } = new();
+    public ObservableCollection<TiersEntity> Clients => ClientLookup.Clients;
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private ProductSearchRow? _selectedProduct;
@@ -89,9 +93,7 @@ public partial class PosViewModel : BaseViewModel
     private async Task LoadClientsAsync()
     {
         var clients = await _posService.GetActiveClientsAsync();
-        Clients.Clear();
-        foreach (var c in clients)
-            Clients.Add(c);
+        ClientLookup.ReplaceAll(clients);
     }
 
     public bool HasItems => Cart.Count > 0;

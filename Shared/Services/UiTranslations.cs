@@ -251,6 +251,8 @@ public static class UiTranslations
         ["Dlg_Validation"] = ("Validation", "التحقق"),
         ["Tiers_ErrName"] = ("Le nom est obligatoire.", "الاسم إلزامي."),
         ["Lbl_CategorieTiers"] = ("Catégorie", "الفئة"),
+        ["CategorieTiers_Officiel"] = ("Officiel", "رسمي"),
+        ["CategorieTiers_Comptoir"] = ("Comptoir", "كاشير"),
         ["Tiers_Saved"] = ("Enregistré.", "تم الحفظ."),
         ["Prod_DeleteTitle"] = ("Supprimer le produit", "حذف المنتج"),
         ["Prod_DeleteConfirm"] = ("Supprimer définitivement « {0} » ? Cette action est irréversible.", "حذف « {0} » نهائياً؟ لا يمكن التراجع."),
