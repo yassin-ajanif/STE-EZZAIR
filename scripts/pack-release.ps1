@@ -1,9 +1,5 @@
-param(
-    [Parameter(Mandatory = $true)]
-    [string]$Version
-)
-
 $ErrorActionPreference = "Stop"
+$Version = "1.0.9"
 $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $PublishDir = Join-Path $ProjectRoot "publish"
