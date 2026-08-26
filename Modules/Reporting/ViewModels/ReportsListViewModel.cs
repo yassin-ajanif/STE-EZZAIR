@@ -86,6 +86,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblStockValVente = string.Empty;
     [ObservableProperty] private string _lblStockValProfit = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalMargin = string.Empty;
+    [ObservableProperty] private string _lblProfitChargesTotalVente = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsClient = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalPurchases = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsFournisseur = string.Empty;
@@ -93,6 +94,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblProfitChargesNetResult = string.Empty;
     [ObservableProperty] private bool _isNetPositive = true;
     [ObservableProperty] private string _lblProfitChargesMarginLabel = string.Empty;
+    [ObservableProperty] private string _lblProfitChargesVenteLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesAvoirsClientLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesPurchasesLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesAvoirsFournisseurLabel = string.Empty;
@@ -152,6 +154,7 @@ public partial class ReportsListViewModel : BaseViewModel
         LblStockValVenteLabel = _locale.T("Reports_LblStockValVente");
         LblStockValProfitLabel = _locale.T("Reports_LblStockValProfit");
         LblProfitChargesMarginLabel = _locale.T("Reports_LblTotalSalesMargin");
+        LblProfitChargesVenteLabel = _locale.T("Reports_LblTotalSales");
         LblProfitChargesAvoirsClientLabel = _locale.T("Reports_LblTotalAvoirsClient");
         LblProfitChargesPurchasesLabel = _locale.T("Reports_LblTotalPurchases");
         LblProfitChargesAvoirsFournisseurLabel = _locale.T("Reports_LblTotalAvoirsFournisseur");
@@ -318,6 +321,7 @@ public partial class ReportsListViewModel : BaseViewModel
         _allProfitCharges = result.Rows;
         var dev = result.Devise;
         LblProfitChargesTotalMargin = $"+{result.TotalSalesMargin:N2} {dev}";
+        LblProfitChargesTotalVente = $"+{result.TotalVente:N2} {dev}";
         LblProfitChargesTotalAvoirsClient = $"-{result.TotalAvoirsClient:N2} {dev}";
         LblProfitChargesTotalPurchases = $"-{result.TotalPurchases:N2} {dev}";
         LblProfitChargesTotalAvoirsFournisseur = $"+{result.TotalAvoirsFournisseur:N2} {dev}";

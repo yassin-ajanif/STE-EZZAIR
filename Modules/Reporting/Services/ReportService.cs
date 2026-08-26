@@ -535,6 +535,7 @@ public sealed class ReportService : IReportService
                 .ToDictionaryAsync(p => p.Id, p => p.PrixAchatHT, ct);
 
         decimal totalMargin = 0;
+        decimal totalVente = 0;
         decimal totalAvoirsClient = 0;
 
         foreach (var f in factures)
@@ -552,6 +553,7 @@ public sealed class ReportService : IReportService
             ttc *= factor;
             var profit = ht - costHt;
             totalMargin += profit;
+            totalVente += ttc;
             rows.Add(new ReportProfitChargeRow(
                 ReportProfitChargeKind.SaleMargin,
                 typeMarge,
@@ -578,6 +580,7 @@ public sealed class ReportService : IReportService
             ttc *= factor;
             var profit = ht - costHt;
             totalMargin += profit;
+            totalVente += ttc;
             rows.Add(new ReportProfitChargeRow(
                 ReportProfitChargeKind.SaleMargin,
                 typeMarge,
@@ -717,11 +720,13 @@ public sealed class ReportService : IReportService
         }
 
         var sorted = rows.OrderByDescending(r => r.Date).ThenBy(r => r.TypeLabel).ToList();
-        var net = totalMargin - totalAvoirsClient - totalPurchases + totalAvoirsFournisseur - totalCharges;
+        // Net = total vente + total avoir fournisseur - charge - achat - avoir client
+        var net = totalVente + totalAvoirsFournisseur - totalCharges - totalPurchases - totalAvoirsClient;
 
         return new ReportProfitChargesResult
         {
             TotalSalesMargin = totalMargin,
+            TotalVente = totalVente,
             TotalAvoirsClient = totalAvoirsClient,
             TotalPurchases = totalPurchases,
             TotalAvoirsFournisseur = totalAvoirsFournisseur,
