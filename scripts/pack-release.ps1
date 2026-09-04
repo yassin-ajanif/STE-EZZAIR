@@ -18,7 +18,7 @@ try {
 
     vpk pack `
         --packId Sonlighting.GestionCommerciale `
-        --packTitle "SAHRAOUI" `
+        --packTitle "STE-EZZAIR" `
         --packVersion $Version `
         --packDir $PublishDir `
         --mainExe GestionCommerciale.exe `
