@@ -41,7 +41,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "DEVIS", devis.Numero, devis.Date, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "DEVIS", devis.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildBonLivraisonTicketAsync(BonLivraison bl, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -55,7 +55,7 @@ public sealed class TicketPdfService : ITicketPdfService
         }).ToList();
 
         var bccRef = await ResolveBonCommandeReferenceAsync(bl, cancellationToken);
-        return Render(cfg, "BON DE LIVRAISON", bl.Numero, bl.Date, "Client", party.Nom, lines, totals.ht, widthMm,
+        return Render(cfg, "BON DE LIVRAISON", bl.Numero, "Client", party.Nom, lines, totals.ht, widthMm,
             extraLabel: string.IsNullOrWhiteSpace(bccRef) ? null : "BC",
             extraValue: bccRef);
     }
@@ -70,7 +70,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.QuantiteRecue, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "BON DE RÉCEPTION", br.Numero, br.Date, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE RÉCEPTION", br.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildBonCommandeTicketAsync(BonCommande bc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -83,7 +83,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "BON DE COMMANDE", bc.Numero, bc.Date, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildBonCommandeClientTicketAsync(BonCommandeClient bc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -96,7 +96,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "BON DE COMMANDE", bc.Numero, bc.Date, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildFactureTicketAsync(Facture facture, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -109,7 +109,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "FACTURE", facture.Numero, facture.Date, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildBonPreparationTicketAsync(BonPreparation doc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -122,7 +122,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "BON DE PRÉPARATION", doc.Numero, doc.Date, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE PRÉPARATION", doc.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildFactureFournisseurTicketAsync(FactureFournisseur factureFournisseur, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -135,7 +135,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, factureFournisseur.Date, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildAvoirTicketAsync(Avoir avoir, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -148,7 +148,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "AVOIR", avoir.Numero, avoir.Date, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "AVOIR", avoir.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
     }
 
     public async Task<byte[]> BuildAvoirFournisseurTicketAsync(AvoirFournisseur doc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -161,7 +161,7 @@ public sealed class TicketPdfService : ITicketPdfService
             return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
         }).ToList();
 
-        return Render(cfg, "AVOIR FOURNISSEUR", doc.Numero, doc.Date, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "AVOIR FOURNISSEUR", doc.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
     }
 
     private async Task<string?> ResolveBonCommandeReferenceAsync(BonLivraison bl, CancellationToken cancellationToken)
@@ -193,7 +193,6 @@ public sealed class TicketPdfService : ITicketPdfService
         AppSettingsRow cfg,
         string kind,
         string numero,
-        DateTime date,
         string partyLabel,
         string partyName,
         IReadOnlyList<TicketLinePdfModel> lines,
@@ -211,7 +210,7 @@ public sealed class TicketPdfService : ITicketPdfService
             LogoBytes = TryLoadLogoBytes(cfg.SocieteLogoPath),
             DocumentKindLabel = kind,
             Numero = numero,
-            DateText = date.ToString("dd/MM/yyyy HH:mm"),
+            DateText = DateTime.Now.ToString("dd/MM/yyyy HH:mm"),
             ExtraInfoLabel = extraLabel,
             ExtraInfoValue = extraValue,
             PartyLabel = partyLabel,

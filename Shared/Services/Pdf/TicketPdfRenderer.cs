@@ -43,22 +43,9 @@ public static class TicketPdfRenderer
                     if (!string.IsNullOrWhiteSpace(model.ExtraInfoLabel) && !string.IsNullOrWhiteSpace(model.ExtraInfoValue))
                         col.Item().Text($"{model.ExtraInfoLabel} : {model.ExtraInfoValue}").FontSize(8);
                     col.Item().Text($"{model.PartyLabel} : {model.PartyName}").FontSize(8);
-                    col.Item().PaddingVertical(4).AlignCenter().Text(dash).FontSize(7);
+                    col.Item().PaddingTop(6);
 
-                    foreach (var line in model.Lines)
-                    {
-                        col.Item().PaddingTop(3)
-                            .Text(line.Designation).Bold().FontSize(8);
-                        col.Item().Row(r =>
-                        {
-                            r.RelativeItem()
-                                .Text($"{FmtQty(line.Quantite)} x {FmtMoney(line.PrixUnitaire)}")
-                                .FontSize(7.5f);
-                            r.AutoItem()
-                                .Text(FmtMoney(line.Montant))
-                                .FontSize(8);
-                        });
-                    }
+                    DrawLinesTable(col, model);
 
                     col.Item().PaddingVertical(4).AlignCenter().Text(dash).FontSize(7);
                     col.Item().Row(r =>
@@ -75,6 +62,54 @@ public static class TicketPdfRenderer
         });
 
         return doc.GeneratePdf();
+    }
+
+    private static void DrawLinesTable(ColumnDescriptor col, TicketDocumentPdfModel model)
+    {
+        // ~45% article / rest for numbers (mm) so Prix/QTE/Montant never wrap on 58/80.
+        var is80 = model.WidthMm >= 80f;
+        var prixW = is80 ? 16f : 13f;
+        var qteW = is80 ? 9f : 7f;
+        var montantW = is80 ? 17f : 14f;
+        var headerSize = is80 ? 7f : 6.5f;
+        var cellSize = is80 ? 7f : 6.5f;
+
+        col.Item().Table(table =>
+        {
+            table.ColumnsDefinition(columns =>
+            {
+                columns.RelativeColumn();
+                columns.ConstantColumn(prixW, Unit.Millimetre);
+                columns.ConstantColumn(qteW, Unit.Millimetre);
+                columns.ConstantColumn(montantW, Unit.Millimetre);
+            });
+
+            table.Header(header =>
+            {
+                header.Cell().Element(HeaderCell).AlignLeft().Text("Article").FontSize(headerSize);
+                header.Cell().Element(HeaderCell).AlignRight().Text("Prix").FontSize(headerSize);
+                header.Cell().Element(HeaderCell).AlignRight().Text("QTE").FontSize(headerSize);
+                header.Cell().Element(HeaderCell).AlignRight().Text("Montant").FontSize(headerSize);
+            });
+
+            foreach (var line in model.Lines)
+            {
+                table.Cell().Element(BodyCell).AlignLeft()
+                    .Text(line.Designation).FontSize(cellSize);
+                table.Cell().Element(BodyCell).AlignRight()
+                    .Text(FmtMoney(line.PrixUnitaire)).FontSize(cellSize);
+                table.Cell().Element(BodyCell).AlignRight()
+                    .Text(FmtQty(line.Quantite)).FontSize(cellSize);
+                table.Cell().Element(BodyCell).AlignRight()
+                    .Text(FmtMoney(line.Montant)).FontSize(cellSize);
+            }
+        });
+
+        static IContainer HeaderCell(IContainer c) =>
+            c.BorderBottom(0.5f).BorderColor(Colors.Black).PaddingBottom(2).PaddingHorizontal(1);
+
+        static IContainer BodyCell(IContainer c) =>
+            c.BorderBottom(0.5f).BorderColor(Colors.Black).PaddingVertical(3).PaddingHorizontal(1);
     }
 
     private static void DrawLogo(ColumnDescriptor col, TicketDocumentPdfModel model, float sideInset, float maxHeight)
