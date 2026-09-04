@@ -33,6 +33,7 @@ public partial class DevisEditViewModel : BaseViewModel
     private readonly ILocaleService _locale;
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
     private readonly IPdfPrintService _pdfPrint;
 
     public DevisEditViewModel(
@@ -46,6 +47,7 @@ public partial class DevisEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IPdfService pdf,
+        ITicketPdfService ticketPdf,
         IPdfPrintService pdfPrint)
     {
         _dbFactory = dbFactory;
@@ -58,6 +60,7 @@ public partial class DevisEditViewModel : BaseViewModel
         _locale = locale;
         _uiPreferences = uiPreferences;
         _pdf = pdf;
+        _ticketPdf = ticketPdf;
         _pdfPrint = pdfPrint;
         _locale.CultureApplied += (_, _) =>
         {
@@ -596,9 +599,7 @@ public partial class DevisEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildDevisPdfBytesAsync(cancellationToken);
-            if (bytes == null) return;
-            await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(BuildDevisPdfForPrintAsync, Numero, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -608,6 +609,24 @@ public partial class DevisEditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<byte[]> BuildDevisPdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (DevisId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var d = await db.Devis.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == d.ClientId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(client);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildDevisPdfAsync(d, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildDevisTicketAsync(d, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildDevisTicketAsync(d, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
     }
 
     private async Task<byte[]?> BuildDevisPdfBytesAsync(CancellationToken cancellationToken)

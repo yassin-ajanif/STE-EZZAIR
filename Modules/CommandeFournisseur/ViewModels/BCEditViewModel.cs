@@ -30,6 +30,7 @@ public partial class BCEditViewModel : BaseViewModel
     private readonly ILocaleService _locale;
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IAppSettingsService _settings;
 
@@ -43,6 +44,7 @@ public partial class BCEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IPdfService pdf,
+        ITicketPdfService ticketPdf,
         IPdfPrintService pdfPrint,
         IAppSettingsService settings)
     {
@@ -55,6 +57,7 @@ public partial class BCEditViewModel : BaseViewModel
         _locale = locale;
         _uiPreferences = uiPreferences;
         _pdf = pdf;
+        _ticketPdf = ticketPdf;
         _pdfPrint = pdfPrint;
         _settings = settings;
         _locale.CultureApplied += (_, _) => RefreshBcUi();
@@ -514,9 +517,7 @@ public partial class BCEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildBcPdfBytesAsync(cancellationToken);
-            if (bytes == null) return;
-            await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(BuildBcPdfForPrintAsync, Numero, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -526,6 +527,24 @@ public partial class BCEditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<byte[]> BuildBcPdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (BcId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var b = await db.BonsCommande.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        var fournisseur = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == b.FournisseurId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(fournisseur);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildBonCommandePdfAsync(b, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildBonCommandeTicketAsync(b, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildBonCommandeTicketAsync(b, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
     }
 
     private async Task<byte[]?> BuildBcPdfBytesAsync(CancellationToken cancellationToken)

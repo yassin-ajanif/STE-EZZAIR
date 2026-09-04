@@ -34,6 +34,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     private readonly ILocaleService _locale;
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IStockMovementService _stock;
 
@@ -49,6 +50,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IPdfService pdf,
+        ITicketPdfService ticketPdf,
         IPdfPrintService pdfPrint,
         IStockMovementService stock)
     {
@@ -63,6 +65,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         _locale = locale;
         _uiPreferences = uiPreferences;
         _pdf = pdf;
+        _ticketPdf = ticketPdf;
         _pdfPrint = pdfPrint;
         _stock = stock;
         _locale.CultureApplied += (_, _) =>
@@ -757,9 +760,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildBonPreparationPdfBytesAsync(cancellationToken);
-            if (bytes == null) return;
-            await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(BuildBonPreparationPdfForPrintAsync, Numero, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -769,6 +770,24 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<byte[]> BuildBonPreparationPdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (BonPreparationId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var f = await db.BonsPreparation.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
+        var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == f.ClientId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(client);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildBonPreparationPdfAsync(f, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildBonPreparationTicketAsync(f, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildBonPreparationTicketAsync(f, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
     }
 
     private async Task<byte[]?> BuildBonPreparationPdfBytesAsync(CancellationToken cancellationToken)
