@@ -17,9 +17,9 @@ public static class TicketPdfRenderer
             throw new ArgumentOutOfRangeException(nameof(model), "Ticket width must be 58 or 80 mm.");
 
         var dash = model.WidthMm >= 80f ? new string('-', 42) : new string('-', 32);
-        // Near-full width: keep a small inset so the logo doesn't touch the paper edges.
-        var logoSideInset = model.WidthMm >= 80f ? 2f : 1.5f;
-        var logoMaxHeight = model.WidthMm >= 80f ? 42f : 32f;
+        // Wide logo: small side inset, taller box so the brand fills most of the ticket width.
+        var logoSideInsetMm = model.WidthMm >= 80f ? 2f : 1.5f;
+        var logoMaxHeightMm = model.WidthMm >= 80f ? 30f : 22f;
 
         var doc = Document.Create(container =>
         {
@@ -33,7 +33,7 @@ public static class TicketPdfRenderer
 
                 page.Content().Column(col =>
                 {
-                    DrawLogo(col, model, logoSideInset, logoMaxHeight);
+                    DrawLogo(col, model, logoSideInsetMm, logoMaxHeightMm);
 
                     col.Item().PaddingTop(4).AlignCenter().Text(dash).FontSize(7);
                     col.Item().PaddingTop(4).AlignCenter()
@@ -112,11 +112,14 @@ public static class TicketPdfRenderer
             c.BorderBottom(0.5f).BorderColor(Colors.Black).PaddingVertical(3).PaddingHorizontal(1);
     }
 
-    private static void DrawLogo(ColumnDescriptor col, TicketDocumentPdfModel model, float sideInset, float maxHeight)
+    private static void DrawLogo(ColumnDescriptor col, TicketDocumentPdfModel model, float sideInsetMm, float maxHeightMm)
     {
         if (model.LogoBytes is { Length: > 0 })
         {
-            col.Item().PaddingHorizontal(sideInset).Height(maxHeight).AlignCenter()
+            col.Item()
+                .PaddingHorizontal(sideInsetMm, Unit.Millimetre)
+                .Height(maxHeightMm, Unit.Millimetre)
+                .AlignCenter()
                 .Image(model.LogoBytes)
                 .FitArea();
             return;
