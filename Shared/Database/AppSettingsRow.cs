@@ -8,7 +8,8 @@ public class AppSettingsRow
     public string SocieteAdresse { get; set; } = string.Empty;
     public string SocieteICE { get; set; } = string.Empty;
     /// <summary>Optional multi-line block (RC, Patente, téléphone, etc.) printed in PDF footer.</summary>
-    public string? SocieteMentionsLegales { get; set; }
+    public string? SocieteMentionsLegales { get; set; } =
+        "Drouguerie EZZAIR\nLot errahma S16  Guercif\n06.27.13.13.45 - 06.58.46.39.65 - 06.03.03.73.13";
     public string? SocieteLogoPath { get; set; }
     public string TauxTVAJson { get; set; } = "[20]"; // JSON array of decimals
     public bool BlocageSiStockInsuffisant { get; set; } = true;

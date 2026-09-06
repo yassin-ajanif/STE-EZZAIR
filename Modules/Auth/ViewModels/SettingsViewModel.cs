@@ -282,8 +282,8 @@ public partial class SettingsViewModel : BaseViewModel
         var row = new AppSettingsRow
         {
             Id = 1,
-            SocieteNom = SocieteNom,
-            SocieteAdresse = SocieteAdresse,
+            SocieteNom = string.Empty,
+            SocieteAdresse = string.Empty,
             SocieteICE = SocieteIce,
             SocieteMentionsLegales = string.IsNullOrWhiteSpace(SocieteMentionsLegales) ? null : SocieteMentionsLegales.Trim(),
             SocieteLogoPath = SocieteLogoPath,

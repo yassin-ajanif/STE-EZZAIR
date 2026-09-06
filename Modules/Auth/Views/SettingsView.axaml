@@ -22,16 +22,6 @@
       </StackPanel>
 
       <StackPanel Spacing="4">
-        <TextBlock Text="{Binding LblSocieteNom}" FontWeight="SemiBold"/>
-        <TextBox Text="{Binding SocieteNom}" Watermark="{Binding WmSociete}"/>
-      </StackPanel>
-
-      <StackPanel Spacing="4">
-        <TextBlock Text="{Binding LblAdresse}" FontWeight="SemiBold"/>
-        <TextBox Text="{Binding SocieteAdresse}" Watermark="{Binding WmAdresse}" AcceptsReturn="True" Height="80"/>
-      </StackPanel>
-
-      <StackPanel Spacing="4">
         <TextBlock Text="{Binding LblIce}" FontWeight="SemiBold"/>
         <TextBox Text="{Binding SocieteIce}" Watermark="{Binding WmIce}"/>
       </StackPanel>
