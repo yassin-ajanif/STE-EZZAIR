@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using GestionCommerciale.Modules.Reporting.ViewModels;
 
 namespace GestionCommerciale.Modules.Reporting.Views;
@@ -13,6 +14,20 @@ public partial class ReportsListView : UserControl
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+    private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.Source is not Control source)
+            return;
+
+        // Keep focus when interacting with editable controls.
+        if (source is TextBox or NumericUpDown
+            || source.FindAncestorOfType<TextBox>() is not null
+            || source.FindAncestorOfType<NumericUpDown>() is not null)
+            return;
+
+        TopLevel.GetTopLevel(this)?.FocusManager?.ClearFocus();
+    }
 
     private void OnProfitFilterCardTapped(object? sender, TappedEventArgs e)
     {

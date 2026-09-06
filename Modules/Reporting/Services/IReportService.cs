@@ -18,6 +18,9 @@ public interface IReportService
 
     Task<List<ReportUnpaidRow>> GetUnpaidSalesAsync(CancellationToken ct = default);
 
+    Task<List<ReportClientSoldeRow>> GetClientSoldesAsync(
+        DateTime from, DateTime to, CancellationToken ct = default);
+
     Task<List<ReportStockMovementRow>> GetStockMovementsAsync(
         DateTime from, DateTime to, CancellationToken ct = default);
 

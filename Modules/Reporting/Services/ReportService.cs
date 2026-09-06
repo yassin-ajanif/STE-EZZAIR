@@ -3,6 +3,7 @@ using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Reporting.ViewModels;
 using GestionCommerciale.Modules.Stock.Models;
+using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -402,6 +403,121 @@ public sealed class ReportService : IReportService
         }
 
         return rows;
+    }
+
+    public async Task<List<ReportClientSoldeRow>> GetClientSoldesAsync(
+        DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var dev = await GetDeviseAsync(ct);
+        if (from.Date > to.Date)
+            (from, to) = (to, from);
+        var toEnd = to.Date.AddDays(1);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var clients = await db.Tiers.AsNoTracking()
+            .Where(t => t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux)
+            .Select(t => new { t.Id, t.Nom, t.ICE, t.Ville })
+            .ToListAsync(ct);
+
+        if (clients.Count == 0)
+            return [];
+
+        var clientIds = clients.Select(c => c.Id).ToList();
+        var soldeByClient = clients.ToDictionary(c => c.Id, _ => 0m);
+
+        // Soldes as of "Au" (all documents up to end of period), aligned with client ledger.
+        var factures = await db.Factures.AsNoTracking()
+            .Where(f => clientIds.Contains(f.ClientId) && f.Date < toEnd)
+            .Select(f => new { f.ClientId, f.TotalTtc })
+            .ToListAsync(ct);
+
+        foreach (var f in factures)
+        {
+            if (f.TotalTtc > 0)
+                soldeByClient[f.ClientId] += f.TotalTtc;
+        }
+
+        var bonsPreparation = await db.BonsPreparation.AsNoTracking()
+            .Where(b => clientIds.Contains(b.ClientId) && b.Date < toEnd)
+            .Select(b => new { b.ClientId, b.TotalTtc })
+            .ToListAsync(ct);
+
+        foreach (var b in bonsPreparation)
+        {
+            if (b.TotalTtc > 0)
+                soldeByClient[b.ClientId] += b.TotalTtc;
+        }
+
+        var paiementsFacture = await (
+                from p in db.Paiements.AsNoTracking()
+                join f in db.Factures.AsNoTracking() on p.FactureId equals f.Id
+                where p.Date < toEnd
+                      && clientIds.Contains(f.ClientId)
+                      && p.Mode != ModePaiement.Credit
+                select new { f.ClientId, p.Montant })
+            .ToListAsync(ct);
+
+        foreach (var p in paiementsFacture)
+        {
+            if (p.Montant > 0)
+                soldeByClient[p.ClientId] -= p.Montant;
+        }
+
+        var paiementsBp = await (
+                from p in db.PaiementsBonPreparation.AsNoTracking()
+                join b in db.BonsPreparation.AsNoTracking() on p.BonPreparationId equals b.Id
+                where p.Date < toEnd
+                      && clientIds.Contains(b.ClientId)
+                      && p.Mode != ModePaiement.Credit
+                select new { b.ClientId, p.Montant })
+            .ToListAsync(ct);
+
+        foreach (var p in paiementsBp)
+        {
+            if (p.Montant > 0)
+                soldeByClient[p.ClientId] -= p.Montant;
+        }
+
+        var avoirs = await db.Avoirs.AsNoTracking()
+            .Where(a => clientIds.Contains(a.ClientId) && a.Date < toEnd)
+            .Select(a => new
+            {
+                a.ClientId,
+                Lignes = a.Lignes!.Select(l => new
+                {
+                    l.Quantite,
+                    l.PrixUnitaireHT,
+                    l.Remise,
+                    l.TauxTVA
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        foreach (var a in avoirs)
+        {
+            var lignes = a.Lignes.Select(l => new AvoirLigne
+            {
+                Quantite = l.Quantite,
+                PrixUnitaireHT = l.PrixUnitaireHT,
+                Remise = l.Remise,
+                TauxTVA = l.TauxTVA
+            }).ToList();
+            var (_, _, ttc) = DocumentTotalsHelper.AvoirTotals(lignes);
+            if (ttc > 0)
+                soldeByClient[a.ClientId] -= ttc;
+        }
+
+        return clients
+            .Select(c => new { Client = c, Solde = soldeByClient[c.Id] })
+            .Where(x => Math.Abs(x.Solde) > 0.01m)
+            .OrderByDescending(x => x.Solde)
+            .Select(x => new ReportClientSoldeRow(
+                x.Client.Nom ?? string.Empty,
+                x.Client.ICE ?? string.Empty,
+                x.Client.Ville ?? string.Empty,
+                x.Solde,
+                dev))
+            .ToList();
     }
 
     public async Task<List<ReportStockMovementRow>> GetStockMovementsAsync(

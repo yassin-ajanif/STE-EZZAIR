@@ -54,6 +54,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _btnRefunds = string.Empty;
     [ObservableProperty] private string _btnDailySales = string.Empty;
     [ObservableProperty] private string _btnUnpaid = string.Empty;
+    [ObservableProperty] private string _btnClientSoldes = string.Empty;
     [ObservableProperty] private string _btnStockMovements = string.Empty;
     [ObservableProperty] private string _btnProfitCharges = string.Empty;
 
@@ -66,6 +67,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private bool _showRefunds;
     [ObservableProperty] private bool _showDailySales;
     [ObservableProperty] private bool _showUnpaid;
+    [ObservableProperty] private bool _showClientSoldes;
     [ObservableProperty] private bool _showStockMovements;
     [ObservableProperty] private bool _showProfitCharges;
 
@@ -85,6 +87,17 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblStockValAchat = string.Empty;
     [ObservableProperty] private string _lblStockValVente = string.Empty;
     [ObservableProperty] private string _lblStockValProfit = string.Empty;
+    [ObservableProperty] private string _lblClientSoldesTotalLabel = string.Empty;
+    [ObservableProperty] private decimal _actuelCaisse;
+    [ObservableProperty] private string _lblClientSoldesDevise = string.Empty;
+    [ObservableProperty] private string _lblClientSoldesStockHtLabel = string.Empty;
+    [ObservableProperty] private string _lblClientSoldesStockHt = string.Empty;
+    [ObservableProperty] private string _lblZakatBaseLabel = string.Empty;
+    [ObservableProperty] private string _lblZakatBase = string.Empty;
+    [ObservableProperty] private string _lblZakatLabel = string.Empty;
+    [ObservableProperty] private string _lblZakat = string.Empty;
+    [ObservableProperty] private string _colClientSoldesClient = string.Empty;
+    [ObservableProperty] private string _colClientSoldesSolde = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalMargin = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalVente = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsClient = string.Empty;
@@ -118,16 +131,20 @@ public partial class ReportsListViewModel : BaseViewModel
     private List<ReportRefundRow> _allRefunds = [];
     private List<ReportDailySaleRow> _allDailySales = [];
     private List<ReportUnpaidRow> _allUnpaidSales = [];
+    private List<ReportClientSoldeRow> _allClientSoldes = [];
     private List<ReportStockMovementRow> _allStockMovements = [];
     private List<ReportProfitChargeRow> _allProfitCharges = [];
     private List<ReportProfitChargeRow> _filteredProfitCharges = [];
     private ReportProfitChargeKind? _profitFilterKind;
+    private decimal _zakatStockHt;
+    private string _zakatDevise = "MAD";
 
     public ObservableCollection<ReportSaleByProductRow> SalesByProduct { get; } = [];
     public ObservableCollection<ReportSaleByCustomerRow> SalesByCustomer { get; } = [];
     public ObservableCollection<ReportRefundRow> Refunds { get; } = [];
     public ObservableCollection<ReportDailySaleRow> DailySales { get; } = [];
     public ObservableCollection<ReportUnpaidRow> UnpaidSales { get; } = [];
+    public ObservableCollection<ReportClientSoldeRow> ClientSoldes { get; } = [];
     public ObservableCollection<ReportStockMovementRow> StockMovements { get; } = [];
     public ObservableCollection<ReportProfitChargeRow> ProfitCharges { get; } = [];
 
@@ -144,6 +161,7 @@ public partial class ReportsListViewModel : BaseViewModel
         BtnRefunds = _locale.T("Reports_BtnRefunds");
         BtnDailySales = _locale.T("Reports_BtnDailySales");
         BtnUnpaid = _locale.T("Reports_BtnUnpaid");
+        BtnClientSoldes = _locale.T("Reports_BtnClientSoldes");
         BtnStockMovements = _locale.T("Reports_BtnStockMovements");
         BtnProfitCharges = _locale.T("Reports_BtnProfitCharges");
         EmptyMessage = _locale.T("Reports_Empty");
@@ -153,6 +171,13 @@ public partial class ReportsListViewModel : BaseViewModel
         LblStockValAchatLabel = _locale.T("Reports_LblStockValAchat");
         LblStockValVenteLabel = _locale.T("Reports_LblStockValVente");
         LblStockValProfitLabel = _locale.T("Reports_LblStockValProfit");
+        LblClientSoldesTotalLabel = _locale.T("Reports_LblActuelCaisse");
+        LblClientSoldesStockHtLabel = _locale.T("Reports_LblStockValAchat");
+        LblZakatBaseLabel = _locale.T("Reports_LblZakatBase");
+        LblZakatLabel = _locale.T("Reports_LblZakat");
+        ColClientSoldesClient = _locale.T("Reports_ColClient");
+        ColClientSoldesSolde = _locale.T("ClientLedger_ColBalance");
+        RefreshZakatTotals();
         LblProfitChargesMarginLabel = _locale.T("Reports_LblTotalSalesMargin");
         LblProfitChargesVenteLabel = _locale.T("Reports_LblTotalSales");
         LblProfitChargesAvoirsClientLabel = _locale.T("Reports_LblTotalAvoirsClient");
@@ -176,6 +201,7 @@ public partial class ReportsListViewModel : BaseViewModel
         ShowDailySales = value == 4;
         ShowUnpaid = value == 5;
         ShowStockMovements = value == 6;
+        ShowClientSoldes = value == 7;
         ShowDateFilter = value != 5;
         LoadReportCommand.Execute(null);
     }
@@ -201,6 +227,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [RelayCommand] private void GoDailySales() => SelectedReportIndex = 4;
     [RelayCommand] private void GoUnpaid() => SelectedReportIndex = 5;
     [RelayCommand] private void GoStockMovements() => SelectedReportIndex = 6;
+    [RelayCommand] private void GoClientSoldes() => SelectedReportIndex = 7;
 
     [RelayCommand]
     private void ToggleCustomerExpand(ReportSaleByCustomerRow? row)
@@ -256,6 +283,9 @@ public partial class ReportsListViewModel : BaseViewModel
                     break;
                 case 6:
                     await LoadStockMovementsAsync(from, to, cancellationToken);
+                    break;
+                case 7:
+                    await LoadClientSoldesAsync(from, to, cancellationToken);
                     break;
             }
         }
@@ -313,6 +343,34 @@ public partial class ReportsListViewModel : BaseViewModel
         LblStockValVente = $"{valuation.venteHt:N2} {valuation.devise}";
         LblStockValProfit = $"{valuation.profit:N2} {valuation.devise}";
         FinishPagedLoad(_allStockMovements.Count);
+    }
+
+    private async Task LoadClientSoldesAsync(DateTime from, DateTime to, CancellationToken ct)
+    {
+        _allClientSoldes = await Task.Run(() => _reportService.GetClientSoldesAsync(from, to, ct), ct);
+        var valuation = await Task.Run(() => _reportService.GetStockValuationAsync(ct), ct);
+        _zakatStockHt = valuation.achatHt;
+        _zakatDevise = valuation.devise;
+        if (_allClientSoldes.Count > 0)
+            _zakatDevise = _allClientSoldes[0].Devise;
+
+        LblClientSoldesDevise = _zakatDevise;
+        LblClientSoldesStockHt = $"{_zakatStockHt:N2} {_zakatDevise}";
+        RefreshZakatTotals();
+        EmptyMessage = _locale.T("Reports_EmptyClientSoldes");
+        FinishPagedLoad(_allClientSoldes.Count);
+    }
+
+    partial void OnActuelCaisseChanged(decimal value) => RefreshZakatTotals();
+
+    private void RefreshZakatTotals()
+    {
+        var zakatBase = ActuelCaisse + _zakatStockHt;
+        var zakat = zakatBase * 0.025m;
+        var dev = string.IsNullOrWhiteSpace(_zakatDevise) ? "MAD" : _zakatDevise;
+        LblClientSoldesDevise = dev;
+        LblZakatBase = $"{zakatBase:N2} {dev}";
+        LblZakat = $"{zakat:N2} {dev}";
     }
 
     private async Task LoadProfitChargesAsync(DateTime from, DateTime to, CancellationToken ct)
@@ -407,6 +465,9 @@ public partial class ReportsListViewModel : BaseViewModel
                 break;
             case 6:
                 ApplyPage(StockMovements, _allStockMovements);
+                break;
+            case 7:
+                ApplyPage(ClientSoldes, _allClientSoldes);
                 break;
         }
     }
