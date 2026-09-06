@@ -21,7 +21,7 @@ public static class CommercialDocumentPdfRenderer
     private const string TableRowEven = "#FFFFFF";
     /// <summary>Rounded corners for panels, table frame, and bottom boxes (QuestPDF points).</summary>
     private const float ComponentCornerRadius = 8f;
-    private const float HeaderLogoHeight = 75f;
+    private const float HeaderLogoHeight = 95f;
     private const float HeaderLogoPaddingHorizontal = 36f;
     private const float HeaderRowSpacing = 14f;
     private const float HeaderSectionSpacing = 10f;
