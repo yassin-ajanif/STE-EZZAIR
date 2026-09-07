@@ -326,6 +326,7 @@ public partial class BREditViewModel : BaseViewModel
         var cfg = await _settings.GetAsync(cancellationToken);
         Devise = CurrencyHelper.FromSettings(cfg);
         InvoicedLabel = string.Empty;
+        _linkedFactureFournisseurId = null;
 
         if (id == null)
         {
@@ -342,6 +343,7 @@ public partial class BREditViewModel : BaseViewModel
             InvoicedLabel = _locale.Tf("BR_FacturedOn", factNum);
 
         var b = await db.BonsReception.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        _linkedFactureFournisseurId = b.FactureFournisseurId;
         Numero = b.Numero;
         FournisseurId = b.FournisseurId;
         Date = new DateTimeOffset(b.Date);
@@ -569,6 +571,17 @@ public partial class BREditViewModel : BaseViewModel
 
         var vm = _sp.GetRequiredService<FactureFournisseurEditViewModel>();
         vm.LoadFromBR(BrId.Value);
+        _workspace.Open(vm);
+    }
+
+    private int? _linkedFactureFournisseurId;
+
+    [RelayCommand]
+    private void OpenLinkedFacture()
+    {
+        if (_linkedFactureFournisseurId is not int factureId) return;
+        var vm = _sp.GetRequiredService<FactureFournisseurEditViewModel>();
+        vm.Load(factureId);
         _workspace.Open(vm);
     }
 

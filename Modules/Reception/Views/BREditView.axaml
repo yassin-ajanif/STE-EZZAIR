@@ -26,6 +26,14 @@
           <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
             <TextBlock Text="{Binding Numero}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"
                        TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+            <Button Classes="docLink"
+                    Command="{Binding OpenLinkedFactureCommand}"
+                    IsVisible="{Binding HasInvoicedLabel}"
+                    VerticalAlignment="Center">
+              <Border Padding="6,1" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="4">
+                <TextBlock Text="{Binding InvoicedLabel}" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+              </Border>
+            </Button>
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
               <TextBlock Text="{Binding LblDateBr}" VerticalAlignment="Center" Opacity="0.7"/>
               <DatePicker SelectedDate="{Binding Date}" IsEnabled="{Binding CanEdit}"/>
