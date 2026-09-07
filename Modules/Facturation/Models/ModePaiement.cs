@@ -7,5 +7,7 @@ public enum ModePaiement
     Especes = 2,
     TPE = 3,
     Virement = 4,
-    Effet = 5
+    Effet = 5,
+    /// <summary>Write-off / forgiven remaining amount (reduces client debt, not cash).</summary>
+    Remise = 6
 }

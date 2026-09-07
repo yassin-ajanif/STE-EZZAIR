@@ -206,6 +206,7 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
             ModePaiement.TPE => "ClientLedger_PayTpe",
             ModePaiement.Effet => "ClientLedger_PayEffet",
             ModePaiement.Credit => "ClientLedger_PayCredit",
+            ModePaiement.Remise => "ClientLedger_PayRemise",
             _ => "ClientLedger_PayReceived"
         });
 }

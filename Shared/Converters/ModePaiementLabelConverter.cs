@@ -23,6 +23,7 @@ public sealed class ModePaiementLabelConverter : IValueConverter
             ModePaiement.TPE => "ModePaiement_TPE",
             ModePaiement.Virement => "ModePaiement_Virement",
             ModePaiement.Effet => "ModePaiement_Effet",
+            ModePaiement.Remise => "ModePaiement_Remise",
             _ => "ModePaiement_Especes"
         };
         return UiTranslations.Get(key, lang);

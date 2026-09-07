@@ -13,6 +13,7 @@ public static class UiEnumStrings
             ModePaiement.TPE => "ModePaiement_TPE",
             ModePaiement.Virement => "ModePaiement_Virement",
             ModePaiement.Effet => "ModePaiement_Effet",
+            ModePaiement.Remise => "ModePaiement_Remise",
             _ => "ModePaiement_Especes"
         });
 }

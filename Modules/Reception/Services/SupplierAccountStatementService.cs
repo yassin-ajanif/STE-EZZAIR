@@ -157,6 +157,7 @@ public sealed class SupplierAccountStatementService : ISupplierAccountStatementS
             ModePaiement.TPE => "SupplierLedger_PayTpe",
             ModePaiement.Effet => "SupplierLedger_PayEffet",
             ModePaiement.Credit => "SupplierLedger_PayCredit",
+            ModePaiement.Remise => "SupplierLedger_PayRemise",
             _ => "SupplierLedger_PaySent"
         });
 }

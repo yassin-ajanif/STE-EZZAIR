@@ -245,6 +245,7 @@ internal static class UiTranslationExtras
         ["ClientLedger_PayTpe"] = ("TPE REÇU", "بطاقة مستلمة"),
         ["ClientLedger_PayEffet"] = ("EFFET REÇU", "كمبيالة مستلمة"),
         ["ClientLedger_PayCredit"] = ("CRÉDIT", "ائتمان"),
+        ["ClientLedger_PayRemise"] = ("REMISE ACCORDÉE", "خصم ممنوح"),
         ["ClientLedger_PayReceived"] = ("RÈGLEMENT REÇU", "دفعة مستلمة"),
         ["SupplierLedger_Title"] = ("État factures et règlements", "كشف الفواتير والمدفوعات"),
         ["SupplierLedger_Empty"] = ("Aucune facture ni règlement pour ce fournisseur.", "لا توجد فواتير ولا مدفوعات لهذا المورد."),
@@ -257,6 +258,7 @@ internal static class UiTranslationExtras
         ["SupplierLedger_PayTpe"] = ("TPE ÉMIS", "بطاقة صادرة"),
         ["SupplierLedger_PayEffet"] = ("EFFET ÉMIS", "كمبيالة صادرة"),
         ["SupplierLedger_PayCredit"] = ("CRÉDIT", "ائتمان"),
+        ["SupplierLedger_PayRemise"] = ("REMISE ACCORDÉE", "خصم ممنوح"),
         ["SupplierLedger_PaySent"] = ("RÈGLEMENT ÉMIS", "دفعة صادرة"),
         ["Fact_NoAvailableBls"] = ("Aucun bon de livraison disponible pour ce client.", "لا توجد أوامر تسليم متاحة لهذا العميل."),
         ["Bp_NoAvailableBls"] = ("Aucun bon de livraison disponible pour ce client.", "لا توجد أوامر تسليم متاحة لهذا العميل."),
@@ -358,6 +360,7 @@ internal static class UiTranslationExtras
         ["ModePaiement_Especes"] = ("Espèces", "نقداً"),
         ["ModePaiement_Virement"] = ("Virement", "تحويل بنكي"),
         ["ModePaiement_Effet"] = ("Effet", "كمبيالة"),
+        ["ModePaiement_Remise"] = ("Remise", "خصم / إبراء"),
 
         ["TypeMvt_Entree"] = ("Entrée", "إدخال"),
         ["TypeMvt_Sortie"] = ("Sortie", "إخراج"),
