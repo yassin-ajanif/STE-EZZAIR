@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Reporting.Services;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Shared.Helpers;
+using GestionCommerciale.Shared.Models.Pdf;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
 
@@ -15,17 +16,23 @@ public partial class ReportsListViewModel : BaseViewModel
     private readonly IDialogService _dialog;
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
+    private readonly IPdfService _pdf;
+    private readonly IPdfPrintService _pdfPrint;
 
     public ReportsListViewModel(
         IReportService reportService,
         IDialogService dialog,
         ICurrentUserSession session,
-        ILocaleService locale)
+        ILocaleService locale,
+        IPdfService pdf,
+        IPdfPrintService pdfPrint)
     {
         _reportService = reportService;
         _dialog = dialog;
         _session = session;
         _locale = locale;
+        _pdf = pdf;
+        _pdfPrint = pdfPrint;
         _locale.CultureApplied += (_, _) => RefreshLabels();
         Pagination = new PaginationHelper(ApplyCurrentPage);
         DatePresets = new DatePresetChipsModel(_locale, (from, to) =>
@@ -47,6 +54,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblDateFrom = string.Empty;
     [ObservableProperty] private string _lblDateTo = string.Empty;
     [ObservableProperty] private string _lblApply = string.Empty;
+    [ObservableProperty] private string _btnPrint = string.Empty;
     [ObservableProperty] private string _lblLoading = string.Empty;
 
     [ObservableProperty] private string _btnSaleByProduct = string.Empty;
@@ -155,6 +163,7 @@ public partial class ReportsListViewModel : BaseViewModel
         LblDateFrom = _locale.T("Reports_From");
         LblDateTo = _locale.T("Reports_To");
         LblApply = _locale.T("Reports_Apply");
+        BtnPrint = _locale.T("Btn_Print");
         LblLoading = _locale.T("Report_Loading");
         BtnSaleByProduct = _locale.T("Reports_BtnSaleByProduct");
         BtnSaleByCustomer = _locale.T("Reports_BtnSaleByCustomer");
@@ -477,5 +486,252 @@ public partial class ReportsListViewModel : BaseViewModel
         target.Clear();
         foreach (var item in source.Skip(Pagination.Skip).Take(Pagination.PageSize))
             target.Add(item);
+    }
+
+    [RelayCommand]
+    private async Task PrintAsync(CancellationToken cancellationToken)
+    {
+        if (!_session.CanAccessReporting)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Report_Title"), _locale.T("Report_ErrDenied"), cancellationToken);
+            return;
+        }
+
+        if (CurrentReportRowCount() == 0 && SelectedReportIndex != 7)
+        {
+            await _dialog.ShowInfoAsync(_locale.T("Reports_Title"), _locale.T("Reports_Empty"), cancellationToken);
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var model = BuildCurrentReportPdfModel();
+            var bytes = await _pdf.BuildReportTablePdfAsync(model, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(bytes, model.Title, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Reports_Title"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private int CurrentReportRowCount() => SelectedReportIndex switch
+    {
+        0 => _filteredProfitCharges.Count,
+        1 => _allSalesByProduct.Count,
+        2 => _allSalesByCustomer.Count,
+        3 => _allRefunds.Count,
+        4 => _allDailySales.Count,
+        5 => _allUnpaidSales.Count,
+        6 => _allStockMovements.Count,
+        7 => _allClientSoldes.Count,
+        _ => 0
+    };
+
+    private string CurrentReportTitle() => SelectedReportIndex switch
+    {
+        0 => BtnProfitCharges,
+        1 => BtnSaleByProduct,
+        2 => BtnSaleByCustomer,
+        3 => BtnRefunds,
+        4 => BtnDailySales,
+        5 => BtnUnpaid,
+        6 => BtnStockMovements,
+        7 => BtnClientSoldes,
+        _ => LblTitle
+    };
+
+    private string? CurrentPeriodText()
+    {
+        if (SelectedReportIndex == 5)
+            return null;
+        var from = DateFrom.Date.ToString("dd/MM/yyyy");
+        var to = DateTo.Date.ToString("dd/MM/yyyy");
+        return $"{_locale.T("Reports_From")} {from}  {_locale.T("Reports_To")} {to}";
+    }
+
+    private ReportTablePdfModel BuildCurrentReportPdfModel()
+    {
+        var title = CurrentReportTitle();
+        var period = CurrentPeriodText();
+
+        return SelectedReportIndex switch
+        {
+            0 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                SummaryLines =
+                [
+                    $"{LblProfitChargesVenteLabel} : {LblProfitChargesTotalVente}",
+                    $"{LblProfitChargesMarginLabel} : {LblProfitChargesTotalMargin}",
+                    $"{LblProfitChargesAvoirsFournisseurLabel} : {LblProfitChargesTotalAvoirsFournisseur}",
+                    $"{LblProfitChargesAvoirsClientLabel} : {LblProfitChargesTotalAvoirsClient}",
+                    $"{LblProfitChargesPurchasesLabel} : {LblProfitChargesTotalPurchases}",
+                    $"{LblProfitChargesChargesLabel} : {LblProfitChargesTotalCharges}",
+                    $"{LblProfitChargesNetLabel} : {LblProfitChargesNetResult}"
+                ],
+                ColumnHeaders = [ColProfitType, ColProfitRef, ColProfitDate, ColProfitHt, ColProfitAmount],
+                AlignRight = [false, false, false, true, true],
+                Rows = _filteredProfitCharges.Select(r => (IReadOnlyList<string>)
+                    [r.TypeLabel, r.RefLibelle, r.LblDate, r.LblMontantHt, r.LblAmount]).ToList()
+            },
+            1 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                ColumnHeaders =
+                [
+                    _locale.T("DevisList_ColRef"),
+                    _locale.T("Reports_ColDesignation"),
+                    _locale.T("Reports_ColCategorie"),
+                    _locale.T("Reports_ColQty"),
+                    _locale.T("Reports_LblTotalTtc"),
+                    _locale.T("Reports_LblProfit"),
+                    _locale.T("Reports_ColMarginPct")
+                ],
+                AlignRight = [false, false, false, true, true, true, true],
+                Rows = _allSalesByProduct.Select(r => (IReadOnlyList<string>)
+                    [r.Reference, r.Designation, r.Categorie, r.LblQty, r.LblTtc, r.LblProfit, r.LblMargin]).ToList()
+            },
+            2 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                SummaryLines =
+                [
+                    $"{LblSaleByCustomerLabelHt} : {LblSaleByCustomerTotalHt}",
+                    $"{LblSaleByCustomerLabelTtc} : {LblSaleByCustomerTotalTtc}",
+                    $"{LblSaleByCustomerLabelProfit} : {LblSaleByCustomerTotalProfit}"
+                ],
+                ColumnHeaders =
+                [
+                    _locale.T("Reports_ColClient"),
+                    _locale.T("Reports_ColIce"),
+                    _locale.T("Reports_ColVille"),
+                    _locale.T("Reports_ColNbFactures"),
+                    _locale.T("Reports_LblTotalHt"),
+                    _locale.T("Reports_LblTotalTtc"),
+                    _locale.T("Reports_LblProfit"),
+                    _locale.T("Reports_ColMarginPct")
+                ],
+                AlignRight = [false, false, false, true, true, true, true, true],
+                Rows = _allSalesByCustomer.Select(r => (IReadOnlyList<string>)
+                    [r.Client, r.Ice, r.Ville, r.LblCount, r.LblHt, r.LblTtc, r.LblProfit, r.LblMargin]).ToList()
+            },
+            3 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                ColumnHeaders =
+                [
+                    _locale.T("Reports_ColNumero"),
+                    _locale.T("DevisList_ColDate"),
+                    _locale.T("Reports_ColClient"),
+                    _locale.T("Reports_ColMotif"),
+                    _locale.T("Reports_ColRetour"),
+                    _locale.T("Reports_LblTotalTtc")
+                ],
+                AlignRight = [false, false, false, false, false, true],
+                Rows = _allRefunds.Select(r => (IReadOnlyList<string>)
+                    [r.Numero, r.LblDate, r.Client, r.Motif, r.LblRetour, r.LblTotal]).ToList()
+            },
+            4 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                SummaryLines = [$"{_locale.T("Reports_LblTotalProfit")} : {LblDailySalesTotalProfit}"],
+                ColumnHeaders =
+                [
+                    _locale.T("DevisList_ColDate"),
+                    _locale.T("Reports_ColNbFactures"),
+                    _locale.T("Reports_LblTotalTtc"),
+                    _locale.T("Reports_LblProfit"),
+                    _locale.T("Reports_ColMarginPct")
+                ],
+                AlignRight = [false, true, true, true, true],
+                Rows = _allDailySales.Select(r => (IReadOnlyList<string>)
+                    [r.LblDate, r.LblCount, r.LblTtc, r.LblProfit, r.LblMargin]).ToList()
+            },
+            5 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                ColumnHeaders =
+                [
+                    _locale.T("Reports_ColNumero"),
+                    _locale.T("Reports_ColReste"),
+                    _locale.T("Reports_ColEcheance"),
+                    _locale.T("Reports_ColStatus")
+                ],
+                AlignRight = [false, true, false, false],
+                Rows = _allUnpaidSales.Select(r => (IReadOnlyList<string>)
+                    [r.Numero, r.Reste, r.DateEcheance, r.DueStatus]).ToList()
+            },
+            6 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                SummaryLines =
+                [
+                    $"{LblStockValAchatLabel} : {LblStockValAchat}",
+                    $"{LblStockValVenteLabel} : {LblStockValVente}",
+                    $"{LblStockValProfitLabel} : {LblStockValProfit}"
+                ],
+                ColumnHeaders =
+                [
+                    _locale.T("DevisList_ColDate"),
+                    _locale.T("Reports_ColProduit"),
+                    _locale.T("Reports_ColType"),
+                    _locale.T("Reports_ColQty"),
+                    _locale.T("Reports_ColOrigine"),
+                    _locale.T("Reports_ColStockApres")
+                ],
+                AlignRight = [false, false, false, true, false, true],
+                Rows = _allStockMovements.Select(r => (IReadOnlyList<string>)
+                [
+                    r.LblDate,
+                    $"{r.ProduitRef} — {r.ProduitDesignation}",
+                    r.TypeMvt,
+                    r.LblQty,
+                    r.Origine,
+                    r.LblStockApres
+                ]).ToList()
+            },
+            7 => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                SummaryLines =
+                [
+                    $"{LblClientSoldesTotalLabel} : {ActuelCaisse:N2} {LblClientSoldesDevise}",
+                    $"{LblClientSoldesStockHtLabel} : {LblClientSoldesStockHt}",
+                    $"{LblZakatBaseLabel} : {LblZakatBase}",
+                    $"{LblZakatLabel} : {LblZakat}"
+                ],
+                ColumnHeaders =
+                [
+                    ColClientSoldesClient,
+                    _locale.T("Reports_ColIce"),
+                    _locale.T("Reports_ColVille"),
+                    ColClientSoldesSolde
+                ],
+                AlignRight = [false, false, false, true],
+                Rows = _allClientSoldes.Select(r => (IReadOnlyList<string>)
+                    [r.Client, r.Ice, r.Ville, r.LblSolde]).ToList()
+            },
+            _ => new ReportTablePdfModel
+            {
+                Title = title,
+                PeriodText = period,
+                ColumnHeaders = ["—"],
+                Rows = []
+            }
+        };
     }
 }

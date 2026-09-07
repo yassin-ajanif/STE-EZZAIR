@@ -532,6 +532,17 @@ public sealed class PdfService : IPdfService
             TryLoadLogoBytes(cfg.SocieteLogoPath));
     }
 
+    public async Task<byte[]> BuildReportTablePdfAsync(
+        ReportTablePdfModel model,
+        CancellationToken cancellationToken = default)
+    {
+        var cfg = await _settings.GetAsync(cancellationToken);
+        return ReportTablePdfRenderer.Render(
+            cfg.SocieteNom,
+            model,
+            TryLoadLogoBytes(cfg.SocieteLogoPath));
+    }
+
     private static CommercialDocumentPdfModel BaseModel(
         AppSettingsRow cfg,
         string kind,

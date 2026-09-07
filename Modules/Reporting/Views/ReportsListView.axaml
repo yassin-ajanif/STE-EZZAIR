@@ -11,8 +11,13 @@
     <ScrollViewer>
       <StackPanel Spacing="12" Margin="4,8,4,32" MinWidth="520">
 
-        <!-- Title -->
-        <TextBlock Text="{Binding LblTitle}" FontWeight="SemiBold" FontSize="18"/>
+        <!-- Title + print -->
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0" Text="{Binding LblTitle}" FontWeight="SemiBold" FontSize="18"
+                     VerticalAlignment="Center"/>
+          <Button Grid.Column="1" Content="{Binding BtnPrint}" Command="{Binding PrintCommand}"
+                  VerticalAlignment="Center" MinWidth="110"/>
+        </Grid>
 
         <!-- Report selector buttons -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
