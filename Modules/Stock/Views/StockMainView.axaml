@@ -115,6 +115,9 @@
                                  IsVisible="{Binding HasPartyName}"/>
                       <TextBlock Text="{Binding UnitPriceDetail}" FontSize="10" Opacity="0.75"
                                  IsVisible="{Binding HasUnitPriceDetail}"/>
+                      <TextBlock Text="{Binding PaymentStatusDetail}" FontSize="10" FontWeight="SemiBold"
+                                 Foreground="{Binding PaymentIsPaid, Converter={x:Static conv:PaidStatusForegroundConverter.Instance}}"
+                                 IsVisible="{Binding HasPaymentStatusDetail}"/>
                     </StackPanel>
                     <TextBlock Grid.Column="2" Text="{Binding StockAvant, StringFormat={}{0:N2}}" TextAlignment="Right" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="3" Text="{Binding QuantiteSignedLabel}" TextAlignment="Right" VerticalAlignment="Center"

@@ -183,7 +183,13 @@ public partial class StockMainViewModel : BaseViewModel
             .Skip(MouvementPagination.Skip)
             .Take(MouvementPagination.PageSize)
             .ToListAsync(cancellationToken);
-        await EnrichMovementDetailsAsync(db, list, _locale.T("Lbl_PrixHt"), cancellationToken);
+        await EnrichMovementDetailsAsync(
+            db,
+            list,
+            _locale.T("Lbl_PrixHt"),
+            _locale.T("Fact_Paid"),
+            _locale.T("Fact_Unpaid"),
+            cancellationToken);
         Mouvements.Clear();
         foreach (var m in list) Mouvements.Add(m);
         MouvementPagination.TotalCount = total;
@@ -193,6 +199,8 @@ public partial class StockMainViewModel : BaseViewModel
         AppDbContext db,
         IReadOnlyList<MouvementStock> movements,
         string prixHtLabel,
+        string paidLabel,
+        string unpaidLabel,
         CancellationToken cancellationToken)
     {
         if (movements.Count == 0) return;
@@ -227,15 +235,28 @@ public partial class StockMainViewModel : BaseViewModel
             ? []
             : await db.BonsLivraison.AsNoTracking()
                 .Where(b => blIds.Contains(b.Id))
-                .Select(b => new { b.Id, b.ClientId })
+                .Select(b => new { b.Id, b.ClientId, b.FactureId })
                 .ToListAsync(cancellationToken);
 
         var bpParties = bpIds.Count == 0
             ? []
             : await db.BonsPreparation.AsNoTracking()
                 .Where(b => bpIds.Contains(b.Id))
-                .Select(b => new { b.Id, b.ClientId })
+                .Select(b => new { b.Id, b.ClientId, b.EstPayee })
                 .ToListAsync(cancellationToken);
+
+        var factureIds = blParties
+            .Where(b => b.FactureId is > 0)
+            .Select(b => b.FactureId!.Value)
+            .Distinct()
+            .ToList();
+        var facturePaidMap = factureIds.Count == 0
+            ? new Dictionary<int, bool>()
+            : await db.Factures.AsNoTracking()
+                .Where(f => factureIds.Contains(f.Id))
+                .ToDictionaryAsync(f => f.Id, f => f.EstPayee, cancellationToken);
+        var bpPaidMap = bpParties.ToDictionary(x => x.Id, x => x.EstPayee);
+        var blFactureIdMap = blParties.ToDictionary(x => x.Id, x => x.FactureId);
 
         var brParties = brIds.Count == 0
             ? []
@@ -353,6 +374,34 @@ public partial class StockMainViewModel : BaseViewModel
             m.UnitPriceDetail = price is decimal p
                 ? $"{prixHtLabel} : {p.ToString("N2", System.Globalization.CultureInfo.CurrentCulture)}"
                 : string.Empty;
+
+            bool? estPayee = null;
+            if (m.OrigineId is int originId)
+            {
+                if (m.OrigineType == StockMovementService.OrigineTypeBonPreparation
+                    && bpPaidMap.TryGetValue(originId, out var bpPaid))
+                {
+                    estPayee = bpPaid;
+                }
+                else if (m.OrigineType == StockMovementService.OrigineTypeBonLivraison
+                         && blFactureIdMap.TryGetValue(originId, out var factureId)
+                         && factureId is int faId
+                         && facturePaidMap.TryGetValue(faId, out var faPaid))
+                {
+                    estPayee = faPaid;
+                }
+            }
+
+            if (estPayee is bool paid)
+            {
+                m.PaymentStatusDetail = paid ? paidLabel : unpaidLabel;
+                m.PaymentIsPaid = paid;
+            }
+            else
+            {
+                m.PaymentStatusDetail = string.Empty;
+                m.PaymentIsPaid = false;
+            }
         }
     }
 

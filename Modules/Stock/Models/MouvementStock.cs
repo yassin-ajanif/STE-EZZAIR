@@ -71,4 +71,14 @@ public class MouvementStock : BaseEntity
 
     [NotMapped]
     public bool HasUnitPriceDetail => !string.IsNullOrEmpty(UnitPriceDetail);
+
+    /// <summary>Payée / Non payée for BP or BL linked to a facture.</summary>
+    [NotMapped]
+    public string PaymentStatusDetail { get; set; } = string.Empty;
+
+    [NotMapped]
+    public bool HasPaymentStatusDetail => !string.IsNullOrWhiteSpace(PaymentStatusDetail);
+
+    [NotMapped]
+    public bool PaymentIsPaid { get; set; }
 }
