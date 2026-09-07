@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:GestionCommerciale.Modules.CommandeFournisseur.ViewModels"
+             xmlns:helpers="using:GestionCommerciale.Shared.Helpers"
              xmlns:m="using:GestionCommerciale.Modules.Tiers.Models"
              xmlns:stock="using:GestionCommerciale.Modules.Stock.Models"
              xmlns:conv="using:GestionCommerciale.Shared.Converters"
@@ -53,6 +54,7 @@
                          Watermark="{Binding WmAddProduct}"
                          ItemsSource="{Binding Produits}"
                          ItemFilter="{Binding ProduitAutocompleteFilter}"
+                         helpers:ProductBarcodeEnter.Enable="True"
                          Text="{Binding AddLineSearchText, Mode=TwoWay}"
                          SelectedItem="{Binding AddLineCatalogPick, Mode=TwoWay}"
                          IsEnabled="{Binding CanEdit}">

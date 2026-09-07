@@ -119,7 +119,7 @@ internal static class UiTranslationExtras
         ["Lbl_CatalogHintDevis"] = ("Choisir un produit du catalogue (réf. et prix vente / TVA seront appliqués)", "اختر منتجاً من الكتالوج (المرجع وسعر البيع والضريبة)"),
         ["Lbl_CatalogHintAvoir"] = ("Choisir un produit du catalogue (réf., prix vente HT et TVA seront appliqués)", "اختر منتجاً من الكتالوج (المرجع وسعر البيع والضريبة يُطبَّقان)"),
         ["Devis_LblAddProduct"] = ("Ajouter un article", "إضافة صنف"),
-        ["Devis_WmSearchProduct"] = ("Rechercher par référence ou nom…", "البحث بالمرجع أو الاسم…"),
+        ["Devis_WmSearchProduct"] = ("Rechercher : réf., nom ou code-barres…", "بحث: مرجع، اسم، باركود…"),
         ["Lbl_Note"] = ("Note", "ملاحظة"),
         ["Lbl_Motif"] = ("Motif", "السبب"),
         ["Lbl_ReturnStock"] = ("Retour marchandise (entrée stock)", "إرجاع بضاعة (إدخال مخزون)"),
