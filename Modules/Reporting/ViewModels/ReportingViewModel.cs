@@ -106,11 +106,8 @@ public partial class ReportingViewModel : BaseViewModel
             return;
         }
 
-        if (_cachedData is not null)
-        {
-            ApplyData(_cachedData);
-            return;
-        }
+        // Always reload from DB (Accueil is a singleton — without this, data stayed stale until app restart).
+        _cachedData = null;
 
         IsBusy = true;
         try
@@ -260,6 +257,7 @@ public partial class ReportingViewModel : BaseViewModel
         {
             stockAlertRows.Add(new ReportStockAlertRow(
                 p.Reference,
+                p.Designation,
                 _locale.Tf("Report_FmtStockDetail",
                     p.StockActuel.ToString("N2", CultureInfo.CurrentCulture),
                     p.StockMinimum.ToString("N2", CultureInfo.CurrentCulture))));

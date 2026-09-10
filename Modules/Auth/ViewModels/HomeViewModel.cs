@@ -47,6 +47,13 @@ public class HomeViewModel : BaseViewModel
 
     public bool ShowTrialMessage => TrialMessage is not null;
 
+    /// <summary>Reload trial banner + dashboard (CA, tops, alerts) when Accueil is opened.</summary>
+    public void RefreshOnNavigate()
+    {
+        _ = RefreshTrialMessageAsync();
+        Dashboard?.LoadCommand.Execute(null);
+    }
+
     private async Task RefreshTrialMessageAsync()
     {
         var settings = await _appSettings.GetAsync(default);

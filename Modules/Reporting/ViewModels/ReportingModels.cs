@@ -19,13 +19,21 @@ public sealed class ReportRankRow
 
 public sealed class ReportStockAlertRow
 {
-    public ReportStockAlertRow(string reference, string detail)
+    public ReportStockAlertRow(string reference, string designation, string detail)
     {
         Reference = reference;
+        Designation = designation;
         Detail = detail;
+        Title = string.IsNullOrWhiteSpace(designation)
+            ? reference
+            : string.IsNullOrWhiteSpace(reference)
+                ? designation
+                : $"{reference} — {designation}";
     }
 
     public string Reference { get; }
+    public string Designation { get; }
+    public string Title { get; }
     public string Detail { get; }
 }
 

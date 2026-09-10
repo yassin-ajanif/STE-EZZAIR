@@ -50,7 +50,9 @@ public partial class AppShellViewModel : BaseViewModel
         };
         _locale.CultureApplied += (_, _) => RefreshShellLabels();
         RefreshShellLabels();
-        _workspace.Open(_sp.GetRequiredService<HomeViewModel>());
+        var home = _sp.GetRequiredService<HomeViewModel>();
+        _workspace.Open(home);
+        home.RefreshOnNavigate();
         UpdateActiveNav();
     }
 
@@ -198,7 +200,13 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavSettings => _session.CanAccessSettings;
 
     [RelayCommand]
-    private void GoHome() => _workspace.Open(_sp.GetRequiredService<HomeViewModel>());
+    private void GoHome()
+    {
+        var home = _sp.GetRequiredService<HomeViewModel>();
+        _workspace.Open(home);
+        // Always refresh: Open() is a no-op when Accueil is already the current page.
+        home.RefreshOnNavigate();
+    }
 
     [RelayCommand]
     private void GoPos() => _workspace.Open(_sp.GetRequiredService<PosViewModel>());
