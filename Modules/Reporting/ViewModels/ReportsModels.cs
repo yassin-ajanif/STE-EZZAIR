@@ -274,7 +274,8 @@ public enum ReportProfitChargeKind
     AvoirClient,
     Purchase,
     AvoirFournisseur,
-    Charge
+    Charge,
+    Remise
 }
 
 public sealed class ReportProfitChargeRow
@@ -324,6 +325,7 @@ public sealed class ReportProfitChargesResult
     public required decimal TotalPurchases { get; init; }
     public required decimal TotalAvoirsFournisseur { get; init; }
     public required decimal TotalCharges { get; init; }
+    public required decimal TotalRemises { get; init; }
     public required decimal NetResult { get; init; }
     public required string Devise { get; init; }
     public required List<ReportProfitChargeRow> Rows { get; init; }

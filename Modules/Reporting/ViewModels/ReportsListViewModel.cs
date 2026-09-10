@@ -112,6 +112,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblProfitChargesTotalPurchases = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsFournisseur = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalCharges = string.Empty;
+    [ObservableProperty] private string _lblProfitChargesTotalRemises = string.Empty;
     [ObservableProperty] private string _lblProfitChargesNetResult = string.Empty;
     [ObservableProperty] private bool _isNetPositive = true;
     [ObservableProperty] private string _lblProfitChargesMarginLabel = string.Empty;
@@ -120,6 +121,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblProfitChargesPurchasesLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesAvoirsFournisseurLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesChargesLabel = string.Empty;
+    [ObservableProperty] private string _lblProfitChargesRemisesLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesNetLabel = string.Empty;
     [ObservableProperty] private string _colProfitType = string.Empty;
     [ObservableProperty] private string _colProfitRef = string.Empty;
@@ -132,6 +134,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private bool _isProfitFilterPurchasesActive;
     [ObservableProperty] private bool _isProfitFilterAvoirsFournisseurActive;
     [ObservableProperty] private bool _isProfitFilterChargesActive;
+    [ObservableProperty] private bool _isProfitFilterRemisesActive;
     [ObservableProperty] private bool _isProfitFilterAllActive = true;
 
     private List<ReportSaleByProductRow> _allSalesByProduct = [];
@@ -193,6 +196,7 @@ public partial class ReportsListViewModel : BaseViewModel
         LblProfitChargesPurchasesLabel = _locale.T("Reports_LblTotalPurchases");
         LblProfitChargesAvoirsFournisseurLabel = _locale.T("Reports_LblTotalAvoirsFournisseur");
         LblProfitChargesChargesLabel = _locale.T("Reports_LblTotalCharges");
+        LblProfitChargesRemisesLabel = _locale.T("Reports_LblTotalRemises");
         LblProfitChargesNetLabel = _locale.T("Reports_LblNetResult");
         ColProfitType = _locale.T("Reports_ColType");
         ColProfitRef = _locale.T("Reports_ColRefLibelle");
@@ -393,6 +397,7 @@ public partial class ReportsListViewModel : BaseViewModel
         LblProfitChargesTotalPurchases = $"-{result.TotalPurchases:N2} {dev}";
         LblProfitChargesTotalAvoirsFournisseur = $"+{result.TotalAvoirsFournisseur:N2} {dev}";
         LblProfitChargesTotalCharges = $"-{result.TotalCharges:N2} {dev}";
+        LblProfitChargesTotalRemises = $"-{result.TotalRemises:N2} {dev}";
         var netSign = result.NetResult >= 0 ? "+" : "";
         LblProfitChargesNetResult = $"{netSign}{result.NetResult:N2} {dev}";
         IsNetPositive = result.NetResult >= 0;
@@ -415,6 +420,9 @@ public partial class ReportsListViewModel : BaseViewModel
     private void FilterProfitCharges() => ToggleProfitFilter(ReportProfitChargeKind.Charge);
 
     [RelayCommand]
+    private void FilterProfitRemises() => ToggleProfitFilter(ReportProfitChargeKind.Remise);
+
+    [RelayCommand]
     private void FilterProfitAll() => ToggleProfitFilter(null);
 
     private void ToggleProfitFilter(ReportProfitChargeKind? kind)
@@ -432,6 +440,7 @@ public partial class ReportsListViewModel : BaseViewModel
         IsProfitFilterPurchasesActive = kind == ReportProfitChargeKind.Purchase;
         IsProfitFilterAvoirsFournisseurActive = kind == ReportProfitChargeKind.AvoirFournisseur;
         IsProfitFilterChargesActive = kind == ReportProfitChargeKind.Charge;
+        IsProfitFilterRemisesActive = kind == ReportProfitChargeKind.Remise;
         IsProfitFilterAllActive = kind == null;
 
         _filteredProfitCharges = kind == null
@@ -574,6 +583,7 @@ public partial class ReportsListViewModel : BaseViewModel
                     $"{LblProfitChargesAvoirsClientLabel} : {LblProfitChargesTotalAvoirsClient}",
                     $"{LblProfitChargesPurchasesLabel} : {LblProfitChargesTotalPurchases}",
                     $"{LblProfitChargesChargesLabel} : {LblProfitChargesTotalCharges}",
+                    $"{LblProfitChargesRemisesLabel} : {LblProfitChargesTotalRemises}",
                     $"{LblProfitChargesNetLabel} : {LblProfitChargesNetResult}"
                 ],
                 ColumnHeaders = [ColProfitType, ColProfitRef, ColProfitDate, ColProfitHt, ColProfitAmount],

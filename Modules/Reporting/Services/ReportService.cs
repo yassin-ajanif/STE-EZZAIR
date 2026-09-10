@@ -835,9 +835,67 @@ public sealed class ReportService : IReportService
                 false));
         }
 
+        var typeRemise = _locale.T("Reports_TypeRemise");
+        decimal totalRemises = 0;
+
+        var remisesFacture = await db.Paiements.AsNoTracking()
+            .Where(p => p.Date >= from && p.Date < toEnd
+                        && p.Mode == ModePaiement.Remise
+                        && p.Montant > 0)
+            .Join(db.Factures.AsNoTracking(),
+                p => p.FactureId,
+                f => f.Id,
+                (p, f) => new { f.Numero, p.Date, p.Montant, p.Reference })
+            .ToListAsync(ct);
+
+        foreach (var p in remisesFacture)
+        {
+            totalRemises += p.Montant;
+            var refLibelle = string.IsNullOrWhiteSpace(p.Reference)
+                ? (p.Numero ?? string.Empty)
+                : $"{p.Numero} — {p.Reference}";
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.Remise,
+                typeRemise,
+                refLibelle,
+                p.Date,
+                p.Montant,
+                -p.Montant,
+                dev,
+                false));
+        }
+
+        var remisesBp = await db.PaiementsBonPreparation.AsNoTracking()
+            .Where(p => p.Date >= from && p.Date < toEnd
+                        && p.Mode == ModePaiement.Remise
+                        && p.Montant > 0)
+            .Join(db.BonsPreparation.AsNoTracking(),
+                p => p.BonPreparationId,
+                b => b.Id,
+                (p, b) => new { b.Numero, p.Date, p.Montant, p.Reference })
+            .ToListAsync(ct);
+
+        foreach (var p in remisesBp)
+        {
+            totalRemises += p.Montant;
+            var refLibelle = string.IsNullOrWhiteSpace(p.Reference)
+                ? (p.Numero ?? string.Empty)
+                : $"{p.Numero} — {p.Reference}";
+            rows.Add(new ReportProfitChargeRow(
+                ReportProfitChargeKind.Remise,
+                typeRemise,
+                refLibelle,
+                p.Date,
+                p.Montant,
+                -p.Montant,
+                dev,
+                false));
+        }
+
         var sorted = rows.OrderByDescending(r => r.Date).ThenBy(r => r.TypeLabel).ToList();
-        // Net = total vente + total avoir fournisseur - charge - achat - avoir client
-        var net = totalVente + totalAvoirsFournisseur - totalCharges - totalPurchases - totalAvoirsClient;
+        // Net = ventes + avoirs fournisseur - charges - achats - avoirs client - remises (giveaways)
+        var net = totalVente + totalAvoirsFournisseur
+                  - totalCharges - totalPurchases - totalAvoirsClient - totalRemises;
 
         return new ReportProfitChargesResult
         {
@@ -847,6 +905,7 @@ public sealed class ReportService : IReportService
             TotalPurchases = totalPurchases,
             TotalAvoirsFournisseur = totalAvoirsFournisseur,
             TotalCharges = totalCharges,
+            TotalRemises = totalRemises,
             NetResult = net,
             Devise = dev,
             Rows = sorted

@@ -55,6 +55,9 @@ public partial class ReportsListView : UserControl
             case "Charges":
                 vm.FilterProfitChargesCommand.Execute(null);
                 break;
+            case "Remises":
+                vm.FilterProfitRemisesCommand.Execute(null);
+                break;
             case "All":
                 vm.FilterProfitAllCommand.Execute(null);
                 break;
