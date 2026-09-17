@@ -31,7 +31,7 @@ internal static class PdfPrintPreviewHost
         Func<byte[], string, CancellationToken, Task<string>> writeTempPdf,
         CancellationToken cancellationToken = default)
     {
-        var initialBytes = await buildPdf(PrintPaperFormat.A4, cancellationToken);
+        var initialBytes = await buildPdf(PrintPaperFormatExtensions.Default, cancellationToken);
         if (initialBytes.Length == 0)
             throw new InvalidOperationException("Le contenu PDF est vide.");
 

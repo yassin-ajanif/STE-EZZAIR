@@ -11,7 +11,7 @@ public static class UiTranslations
         ["Nav_Pos"] = ("Point de vente", "نقطة البيع"),
         ["Nav_Vente"] = ("Vente", "المبيعات"),
         ["Nav_Achat"] = ("Achat", "المشتريات"),
-        ["Nav_Clients"] = ("Clients", "العملاء"),
+        ["Nav_Clients"] = ("Clients", "الزبائن"),
         ["Nav_Devis"] = ("Devis", "عروض الأسعار"),
         ["Nav_BCC"] = ("Bons de commande", "أوامر الشراء"),
         ["Nav_BL"] = ("Bons de livraison", "أذون التسليم"),
@@ -241,7 +241,7 @@ public static class UiTranslations
         ["Avf_ColFournisseur"] = ("Fournisseur", "المورد"),
         ["Lbl_Motif"] = ("Motif", "السبب"),
 
-        ["TiersList_Clients"] = ("Clients", "العملاء"),
+        ["TiersList_Clients"] = ("Clients", "الزبائن"),
         ["TiersList_Fournisseurs"] = ("Fournisseurs", "الموردون"),
         ["TiersDetail_Title"] = ("Fiche tiers", "بطاقة طرف"),
         ["TiersDetail_NewClient"] = ("Nouveau client", "عميل جديد"),

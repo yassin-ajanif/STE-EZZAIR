@@ -10,6 +10,7 @@ public enum PrintPaperFormat
 
 public static class PrintPaperFormatExtensions
 {
+    public const PrintPaperFormat Default = PrintPaperFormat.Ticket80mm;
     public static float TicketWidthMm(this PrintPaperFormat format) => format switch
     {
         PrintPaperFormat.Ticket80mm => 80f,

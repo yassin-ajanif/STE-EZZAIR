@@ -50,7 +50,8 @@ public sealed partial class PdfPrintPreviewViewModel : ObservableObject, IDispos
                 new PaperFormatOption { Format = PrintPaperFormat.Ticket80mm, Label = _locale.T("PrintPreview_FormatTicket80") },
                 new PaperFormatOption { Format = PrintPaperFormat.Ticket58mm, Label = _locale.T("PrintPreview_FormatTicket58") }
             ];
-            SelectedPaperFormat = PaperFormats[0];
+            SelectedPaperFormat = PaperFormats.First(f => f.Format == PrintPaperFormatExtensions.Default);
+            PreviewMaxWidth = 300;
         }
 
         _paperFormatReady = ShowPaperFormatPicker;
