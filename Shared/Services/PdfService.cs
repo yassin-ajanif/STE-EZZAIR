@@ -43,6 +43,9 @@ public sealed class PdfService : IPdfService
 
     private static string FmtUnitPrice(decimal value) => value.ToString("N2", PdfCulture);
 
+    private static string FmtUnitPriceTtc(decimal puHt, decimal tauxTva) =>
+        FmtUnitPrice(DocumentTotalsHelper.PrixUnitaireTtc(puHt, tauxTva));
+
     private static string FmtTvaPct(decimal value) => value.ToString("#,##0.##", PdfCulture);
 
     private static string FmtMoney(decimal value) => value.ToString("N2", PdfCulture);
@@ -63,7 +66,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(ht),
@@ -101,7 +104,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.QuantiteLivree),
                 UniteCell(meta, l.ProduitId),
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -140,7 +143,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.QuantiteRecue),
                 UniteCell(meta, l.ProduitId),
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(0),
                 FmtMoney(lht),
@@ -177,7 +180,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.QuantiteCommandee),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -214,7 +217,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.QuantiteCommandee),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -249,7 +252,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -299,7 +302,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -338,7 +341,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -442,7 +445,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 string.IsNullOrWhiteSpace(l.Conditionnement) ? UniteCell(meta, l.ProduitId) : l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -478,7 +481,7 @@ public sealed class PdfService : IPdfService
                 l.Designation,
                 FmtQty(l.Quantite),
                 string.IsNullOrWhiteSpace(l.Conditionnement) ? UniteCell(meta, l.ProduitId) : l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtUnitPriceTtc(l.PrixUnitaireHT, l.TauxTVA),
                 FmtTvaPct(l.TauxTVA),
                 FmtMoney(l.Remise),
                 FmtMoney(lht),
@@ -684,7 +687,7 @@ public sealed class PdfService : IPdfService
         if (v.ShowConditionnement)
             columns.Add(new PdfTableColumn("Ute", 0.25f, PdfTextAlignment.Center));
         if (v.ShowPuHt)
-            columns.Add(new PdfTableColumn("PU HT", 0.55f, PdfTextAlignment.Center));
+            columns.Add(new PdfTableColumn("PU TTC", 0.55f, PdfTextAlignment.Center));
         if (v.ShowTva)
             columns.Add(new PdfTableColumn("Tva", 0.25f, PdfTextAlignment.Center));
         if (v.ShowRemise)
@@ -708,7 +711,7 @@ public sealed class PdfService : IPdfService
         if (v.ShowConditionnement)
             cells.Add(line.Unite);
         if (v.ShowPuHt)
-            cells.Add(line.PuHt);
+            cells.Add(line.PuTtc);
         if (v.ShowTva)
             cells.Add(line.Tva);
         if (v.ShowRemise)
@@ -725,7 +728,7 @@ public sealed class PdfService : IPdfService
         string Designation,
         string Quantite,
         string Unite,
-        string PuHt,
+        string PuTtc,
         string Tva,
         string Remise,
         string MntHt,

@@ -18,6 +18,19 @@ public partial class AvoirFournisseurLineRow : ObservableObject
     public decimal MontantHt => DocumentTotalsHelper.LigneHT(Quantite, PrixUnitaireHt, Remise);
     public decimal MontantTtc => MontantHt * (1 + TauxTva / 100m);
 
+    public decimal PrixUnitaireTtc
+    {
+        get => DocumentTotalsHelper.PrixUnitaireTtc(PrixUnitaireHt, TauxTva);
+        set
+        {
+            var ht = DocumentTotalsHelper.PrixUnitaireHtFromTtc(value, TauxTva);
+            if (PrixUnitaireHt == ht)
+                OnPropertyChanged(nameof(PrixUnitaireTtc));
+            else
+                PrixUnitaireHt = ht;
+        }
+    }
+
     partial void OnQuantiteChanged(decimal value) => NotifyMontants();
     partial void OnPrixUnitaireHtChanged(decimal value) => NotifyMontants();
     partial void OnRemiseChanged(decimal value) => NotifyMontants();
@@ -38,5 +51,6 @@ public partial class AvoirFournisseurLineRow : ObservableObject
     {
         OnPropertyChanged(nameof(MontantHt));
         OnPropertyChanged(nameof(MontantTtc));
+        OnPropertyChanged(nameof(PrixUnitaireTtc));
     }
 }

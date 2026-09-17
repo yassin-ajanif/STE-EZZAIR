@@ -36,12 +36,9 @@ public sealed class TicketPdfService : ITicketPdfService
         var cfg = await _settings.GetAsync(cancellationToken);
         var totals = DocumentTotalsHelper.DevisTotals(devis.Lignes, devis.RemiseGlobale);
         var lines = devis.Lignes.Select(l =>
-        {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
-        }).ToList();
+            LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)).ToList();
 
-        return Render(cfg, "DEVIS", devis.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "DEVIS", devis.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildBonLivraisonTicketAsync(BonLivraison bl, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -50,12 +47,11 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.BonLivraisonTotals(bl.Lignes);
         var lines = bl.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.QuantiteLivree, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.QuantiteLivree, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.QuantiteLivree, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
         var bccRef = await ResolveBonCommandeReferenceAsync(bl, cancellationToken);
-        return Render(cfg, "BON DE LIVRAISON", bl.Numero, "Client", party.Nom, lines, totals.ht, widthMm,
+        return Render(cfg, "BON DE LIVRAISON", bl.Numero, "Client", party.Nom, lines, totals.ttc, widthMm,
             extraLabel: string.IsNullOrWhiteSpace(bccRef) ? null : "BC",
             extraValue: bccRef);
     }
@@ -66,11 +62,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.BonReceptionTotals(br.Lignes);
         var lines = br.Lignes.Select(l =>
         {
-            var montant = l.QuantiteRecue * l.PrixUnitaireHT;
-            return Line(l.Designation, l.QuantiteRecue, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.QuantiteRecue, l.PrixUnitaireHT, 0, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "BON DE RÉCEPTION", br.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE RÉCEPTION", br.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildBonCommandeTicketAsync(BonCommande bc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -79,11 +74,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.BonCommandeTotals(bc.Lignes);
         var lines = bc.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.QuantiteCommandee, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildBonCommandeClientTicketAsync(BonCommandeClient bc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -92,11 +86,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.BonCommandeClientTotals(bc.Lignes);
         var lines = bc.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.QuantiteCommandee, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.QuantiteCommandee, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE COMMANDE", bc.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildFactureTicketAsync(Facture facture, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -105,11 +98,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.FactureTotals(facture.Lignes, facture.RemiseGlobale);
         var lines = facture.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildBonPreparationTicketAsync(BonPreparation doc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -118,11 +110,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.BonPreparationTotals(doc.Lignes, doc.RemiseGlobale);
         var lines = doc.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "BON DE PRÉPARATION", doc.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "BON DE PRÉPARATION", doc.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildFactureFournisseurTicketAsync(FactureFournisseur factureFournisseur, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -131,11 +122,10 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.FactureFournisseurTotals(factureFournisseur.Lignes, factureFournisseur.RemiseGlobale);
         var lines = factureFournisseur.Lignes.Select(l =>
         {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
+            return LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA);
         }).ToList();
 
-        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildAvoirTicketAsync(Avoir avoir, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -143,12 +133,9 @@ public sealed class TicketPdfService : ITicketPdfService
         var cfg = await _settings.GetAsync(cancellationToken);
         var totals = DocumentTotalsHelper.AvoirTotals(avoir.Lignes);
         var lines = avoir.Lignes.Select(l =>
-        {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
-        }).ToList();
+            LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)).ToList();
 
-        return Render(cfg, "AVOIR", avoir.Numero, "Client", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "AVOIR", avoir.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
     public async Task<byte[]> BuildAvoirFournisseurTicketAsync(AvoirFournisseur doc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -156,12 +143,9 @@ public sealed class TicketPdfService : ITicketPdfService
         var cfg = await _settings.GetAsync(cancellationToken);
         var totals = DocumentTotalsHelper.AvoirFournisseurTotals(doc.Lignes);
         var lines = doc.Lignes.Select(l =>
-        {
-            var montant = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            return Line(l.Designation, l.Quantite, l.PrixUnitaireHT, montant);
-        }).ToList();
+            LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)).ToList();
 
-        return Render(cfg, "AVOIR FOURNISSEUR", doc.Numero, "Fournisseur", party.Nom, lines, totals.ht, widthMm);
+        return Render(cfg, "AVOIR FOURNISSEUR", doc.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm);
     }
 
     private async Task<string?> ResolveBonCommandeReferenceAsync(BonLivraison bl, CancellationToken cancellationToken)
@@ -178,6 +162,16 @@ public sealed class TicketPdfService : ITicketPdfService
             .Where(b => b.Id == bccId)
             .Select(b => b.Numero)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static TicketLinePdfModel LineTtc(string designation, decimal qty, decimal puHt, decimal remise, decimal tauxTva)
+    {
+        var montantHt = DocumentTotalsHelper.LigneHT(qty, puHt, remise);
+        return Line(
+            designation,
+            qty,
+            DocumentTotalsHelper.PrixUnitaireTtc(puHt, tauxTva),
+            montantHt * (1 + tauxTva / 100m));
     }
 
     private static TicketLinePdfModel Line(string designation, decimal qty, decimal pu, decimal montant) =>

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using GestionCommerciale.Modules.Stock.Models;
+using GestionCommerciale.Shared.Helpers;
 
 namespace GestionCommerciale.Modules.Reception.ViewModels;
 
@@ -15,6 +16,19 @@ public partial class BRLineRow : ObservableObject
 
     public decimal MontantHt => QuantiteRecue * PrixUnitaireHt;
     public decimal MontantTtc => MontantHt * (1 + TauxTva / 100m);
+
+    public decimal PrixUnitaireTtc
+    {
+        get => DocumentTotalsHelper.PrixUnitaireTtc(PrixUnitaireHt, TauxTva);
+        set
+        {
+            var ht = DocumentTotalsHelper.PrixUnitaireHtFromTtc(value, TauxTva);
+            if (PrixUnitaireHt == ht)
+                OnPropertyChanged(nameof(PrixUnitaireTtc));
+            else
+                PrixUnitaireHt = ht;
+        }
+    }
 
     partial void OnQuantiteRecueChanged(decimal value) => NotifyMontants();
     partial void OnPrixUnitaireHtChanged(decimal value) => NotifyMontants();
@@ -35,5 +49,6 @@ public partial class BRLineRow : ObservableObject
     {
         OnPropertyChanged(nameof(MontantHt));
         OnPropertyChanged(nameof(MontantTtc));
+        OnPropertyChanged(nameof(PrixUnitaireTtc));
     }
 }

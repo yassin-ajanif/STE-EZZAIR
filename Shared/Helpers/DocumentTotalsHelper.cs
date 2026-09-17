@@ -33,6 +33,17 @@ public static class DocumentTotalsHelper
     public static decimal LigneHT(decimal qte, decimal puHt, decimal remisePct) =>
         qte * puHt * (1 - remisePct / 100m);
 
+    public static decimal PrixUnitaireTtc(decimal puHt, decimal tauxTvaPct) =>
+        puHt * (1 + tauxTvaPct / 100m);
+
+    public static decimal PrixUnitaireHtFromTtc(decimal puTtc, decimal tauxTvaPct)
+    {
+        var factor = 1 + tauxTvaPct / 100m;
+        if (factor == 0m)
+            return 0m;
+        return Math.Round(puTtc / factor, 4, MidpointRounding.AwayFromZero);
+    }
+
     public static (decimal ht, decimal tva, decimal ttc) DevisTotals(IEnumerable<DevisLigne> lignes, decimal remiseGlobalePct)
     {
         decimal ht = 0, tva = 0;

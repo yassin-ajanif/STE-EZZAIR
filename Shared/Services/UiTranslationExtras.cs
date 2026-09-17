@@ -140,7 +140,7 @@ internal static class UiTranslationExtras
         ["DocLine_ColQte"] = ("Qté", "الكمية"),
         ["DocLine_ColCond"] = ("Unité", "الوحدة"),
         ["DocLine_WmUnite"] = ("Unité", "الوحدة"),
-        ["DocLine_ColPuHt"] = ("P.U. HT", "س.و. بدون ضريبة"),
+        ["DocLine_ColPuHt"] = ("P.U. TTC", "س.و. شامل الضريبة"),
         ["DocLine_ColRemise"] = ("Rem. %", "خصم %"),
         ["DocLine_ColTva"] = ("TVA %", "ضريبة %"),
         ["DocLine_ColMontantHt"] = ("Montant HT", "المبلغ بدون ضريبة"),
